@@ -1154,26 +1154,32 @@ def train_tokenizer(work, data, shards, total_bytes):
     import pyarrow.parquet as pq
     from tokenizers import Tokenizer, decoders, models, pre_tokenizers, trainers
     want = {k: total_bytes * v / sum(TOKENIZER_SAMPLE.values()) for k, v in TOKENIZER_SAMPLE.items()}
-    got, sample = collections.Counter(), []
-    for s in shards:
-        keep = np.load(Path(s).with_suffix(".keep.npy"))
-        t = pq.read_table(s, columns=["text", "outs", "val"])
-        for text, outs, val, k in zip(t["text"].to_pylist(), t["outs"].to_pylist(), t["val"].to_pylist(), keep):
-            if not k or val:
-                continue
-            for o in outs:
-                if o in want and got[o] < want[o]:
-                    piece = text[:20_000]   # no single book dominates
-                    sample.append(piece)
-                    got[o] += len(piece.encode())
-                    break
-    random.Random(0).shuffle(sample)
+    got = collections.Counter()
+
+    def sample():
+        """The sample, streamed shard by shard (never all in memory; BPE counts do not depend on the order)."""
+        for s in shards:
+            keep = np.load(Path(s).with_suffix(".keep.npy"))
+            for batch in pq.ParquetFile(s).iter_batches(batch_size=4096, columns=["text", "outs", "val"]):
+                for text, outs, val in zip(batch["text"].to_pylist(), batch["outs"].to_pylist(), batch["val"].to_pylist()):
+                    k = keep[sample.row]
+                    sample.row += 1
+                    if not k or val:
+                        continue
+                    for o in outs:
+                        if o in want and got[o] < want[o]:
+                            piece = text[:20_000]   # no single book dominates
+                            got[o] += len(piece.encode())
+                            yield piece
+                            break
+            sample.row = 0
+    sample.row = 0
     tok = Tokenizer(models.BPE())
     tok.pre_tokenizer = pre_tokenizers.Sequence([pre_tokenizers.Digits(individual_digits=True),
                                                  pre_tokenizers.ByteLevel(add_prefix_space=False)])
     tok.decoder = decoders.ByteLevel()
-    tok.train_from_iterator(sample, trainers.BpeTrainer(vocab_size=VOCAB, special_tokens=SPECIAL, show_progress=False,
-                                                        initial_alphabet=pre_tokenizers.ByteLevel.alphabet()))
+    tok.train_from_iterator(sample(), trainers.BpeTrainer(vocab_size=VOCAB, special_tokens=SPECIAL, show_progress=False,
+                                                          initial_alphabet=pre_tokenizers.ByteLevel.alphabet()))
     assert tok.token_to_id(SPECIAL[0]) == 0
     assert tok.get_vocab_size() == VOCAB or total_bytes < 100e6, f"only {tok.get_vocab_size()} pieces learned"
     tok.save(str(data / "tokenizer.json"))
@@ -1391,6 +1397,11 @@ def tokenizer_here(data, work, sample_mb, workers, log):
     adapters = sorted({a for v in feeding.values() for a in v})
     nfiles = {a: (24 if a == "stack_edu" else 2) for a in adapters}   # Stack-Edu's files are one language each
     files = {a: list_files(a)[:nfiles[a]] for a in adapters}
+    if "stackexchange" in files:   # one file from each of these sites, so maths and everyday questions are in the sample
+        every = sorted(list_files("stackexchange"))
+        sites = ["Stackoverflow.com", "math.stackexchange.com", "superuser.com", "askubuntu.com", "unix.stackexchange.com",
+                 "physics.stackexchange.com", "english.stackexchange.com", "cooking.stackexchange.com"]
+        files["stackexchange"] = [next(f for f in every if f"/{site}/" in f) for site in sites if any(f"/{site}/" in f for f in every)]
     total = sum(TOKENIZER_SAMPLE.values())
     want = {o: sample_mb * 1e6 * v / total for o, v in TOKENIZER_SAMPLE.items()}
 
