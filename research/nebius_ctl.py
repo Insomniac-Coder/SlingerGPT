@@ -1,10 +1,12 @@
 """SlingerGPT 492M: the rented server and its data disk on Nebius (TRAINING_PLAN.md stage A.5).
 
     python research/nebius_ctl.py check                      sign-in, GPU quotas, B200 platform and presets (free)
+    python research/nebius_ctl.py prices                     today's spot price per GPU-hour, by platform (free)
     python research/nebius_ctl.py status                     what exists now, and its state (free)
     python research/nebius_ctl.py price --max 3.000 --yes    the most to pay per GPU-hour for spot (a pricing policy)
+    (price and create-server take --gpu b200 (default) or --gpu h200)
     python research/nebius_ctl.py create-disk --yes          the 1 TB data disk (network SSD; owner, 18 November)
-    python research/nebius_ctl.py create-server --yes        8x B200 spot server, data disk attached at /data
+    python research/nebius_ctl.py create-server --yes        8x B200 (or --gpu h200) spot server, data disk at /data
     python research/nebius_ctl.py stop --yes | start --yes | delete-server --yes | delete-disk --yes
     python research/nebius_ctl.py ssh                        the command to log in
 
@@ -23,8 +25,11 @@ NAME = "slingergpt-492m"
 DISK = "slingergpt-492m-data"
 BOOT = "slingergpt-492m-boot"
 POLICY = "slingergpt-492m-spot"
-PLATFORM = "gpu-b200-sxm"
-PRESET = "8gpu-160vcpu-1792gb"     # checked against the platform's presets by `check`
+GPUS = {   # --gpu: the platform and its 8-GPU preset (checked against the platform's presets by `check`)
+    "b200": ("gpu-b200-sxm", "8gpu-160vcpu-1792gb"),
+    "h200": ("gpu-h200-sxm", "8gpu-128vcpu-1600gb"),   # the owner already has 8 of these in us-central1 (18 November)
+}
+PLATFORM, PRESET = GPUS["b200"]
 IMAGE_FAMILY = "ubuntu24.04-cuda12"
 SSH_KEY = Path.home() / ".ssh" / "slingergpt_492m"
 KEY_FILE = Path.home() / ".nebius" / "slingergpt_sa_key.pem"
@@ -95,13 +100,32 @@ async def check(s, project, args):
             continue
         presets = [pr.name for pr in pl.spec.presets]
         print(f"  {pl.metadata.name}: {', '.join(presets)}")
-    b200 = [pl for pl in platforms.items if pl.metadata.name == PLATFORM]
-    if not b200:
-        print(f"\nWARNING: platform {PLATFORM} is not offered to this project")
-    elif PRESET not in [pr.name for pr in b200[0].spec.presets]:
-        print(f"\nWARNING: preset {PRESET} is not one of {PLATFORM}'s presets; change PRESET in this file")
-    else:
-        print(f"\n{PLATFORM} with {PRESET}: available to this project")
+    for gpu, (platform, preset) in GPUS.items():
+        found = [pl for pl in platforms.items if pl.metadata.name == platform]
+        if not found:
+            print(f"WARNING: platform {platform} is not offered to this project")
+        elif preset not in [pr.name for pr in found[0].spec.presets]:
+            print(f"WARNING: preset {preset} is not one of {platform}'s presets; change GPUS in this file")
+        else:
+            print(f"--gpu {gpu}: {platform} with {preset} is offered to this project")
+
+
+async def prices(s, project, args):
+    """Today's spot market price per GPU-hour for each GPU platform (free)."""
+    from nebius.api.nebius.billing.v1alpha1 import SpotPriceServiceClient, ListSpotPricesRequest
+    items, token = [], ""
+    while True:
+        r = await SpotPriceServiceClient(s).list(ListSpotPricesRequest(page_size=100, page_token=token))
+        items += list(r.items)
+        token = r.next_page_token
+        if not token:
+            break
+    region = os.environ.get("NEBIUS_REGION", "us-central1")
+    print(f"spot prices (taken {r.snapshot_time}):")
+    for it in sorted(items, key=lambda i: (i.region != region, i.region, i.compute_instance.platform)):
+        if it.compute_instance.platform.startswith("gpu"):
+            print(f"  {it.region:12s} {it.compute_instance.platform:16s} ${float(it.price.value):.2f} per {it.price.unit_title}"
+                  f"  (8 GPUs: ${8 * float(it.price.value):.2f} an hour)")
 
 
 async def status(s, project, args):
@@ -176,7 +200,7 @@ runcmd:
 
 
 async def create_server(s, project, args):
-    yes_or_stop(args, "an 8x B200 server (about $24 an hour on spot)")
+    yes_or_stop(args, f"an 8x {args.gpu.upper()} spot server")
     from nebius.api.nebius.compute.v1 import (
         InstanceServiceClient, CreateInstanceRequest, InstanceSpec, ResourcesSpec, AttachedDiskSpec, ExistingDisk,
         NetworkInterfaceSpec, IPAddress, PublicIPAddress, PreemptibleSpec, SpotPricingPolicySpec, FollowsSpotPriceSpec,
@@ -264,16 +288,20 @@ async def ssh(s, project, args):
 
 async def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("what", choices=["check", "status", "price", "create-disk", "create-server", "start", "stop",
+    p.add_argument("what", choices=["check", "prices", "status", "price", "create-disk", "create-server", "start", "stop",
                                     "delete-server", "delete-disk", "ssh"])
     p.add_argument("--yes", action="store_true", help="the owner said yes to what this costs")
     p.add_argument("--gb", type=int, default=1000, help="data disk size (owner: 1 TB is enough)")
     p.add_argument("--max", type=float, default=3.0, help="price: the most to pay per GPU-hour, in US dollars")
+    p.add_argument("--gpu", choices=sorted(GPUS), default="b200", help="which 8-GPU server (price and create-server)")
     args = p.parse_args()
+    global PLATFORM, PRESET, POLICY
+    PLATFORM, PRESET = GPUS[args.gpu]
+    POLICY = f"slingergpt-492m-spot-{args.gpu}"
     project = credentials()
     s = sdk()
     try:
-        await {"check": check, "status": status, "price": price, "create-disk": create_disk, "create-server": create_server,
+        await {"check": check, "prices": prices, "status": status, "price": price, "create-disk": create_disk, "create-server": create_server,
                "start": lambda *a: power(*a, on=True), "stop": lambda *a: power(*a, on=False),
                "delete-server": lambda *a: delete(*a, what="server"), "delete-disk": lambda *a: delete(*a, what="disk"),
                "ssh": ssh}[args.what](s, project, args)

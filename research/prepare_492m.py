@@ -213,12 +213,10 @@ def stack_exchange(row):
         return []
     q = html_text(row.get("question"))
     whole = q + "".join(f"\n\nAnswer:\n{a}" for a, _, _ in answers)
-    out = [(whole, [group], f"{site}/{row.get('qid')}", None, {"question": q})]
-    top = [a for a in answers if a[1] or a[2] >= 4]
-    if top:   # the anneal's best answers only
-        out.append((q + "".join(f"\n\nAnswer:\n{a}" for a, _, _ in top), [group + "_top"], f"{site}/{row.get('qid')}/top",
-                    None, {"question": q}))
-    return out
+    # the anneal's slice: threads with an accepted answer or one scored 4+ (the same text, so it is one document
+    # with two outputs; two near-identical documents would remove each other as copies)
+    top = any(sel or score >= 4 for _, sel, score in answers)
+    return [(whole, [group] + ([group + "_top"] if top else []), f"{site}/{row.get('qid')}", None, {"question": q})]
 
 
 EAI_CS = ("004", "005")
@@ -411,7 +409,7 @@ ADAPTERS = {
     "peps":         ("common-pile/python_enhancement_proposals_filtered", "", "jsongz", 1.0, peps, "docs", False, None),
     "archwiki":     ("hannah-eee/arch-wiki-docs", "", "jsonl", 1.0, archwiki, "docs", False, None),
     "docs_web":     ("web:docs", "", "web", 1.0, None, "docs", False, None),
-    "finepdfs":     ("HuggingFaceFW/finepdfs-edu", "data/eng_Latn/", "parquet", 0.15, finepdfs, "pdf", True, None),
+    "finepdfs":     ("HuggingFaceFW/finepdfs-edu", "data/eng_Latn/", "parquet", 0.15, finepdfs, "pdf", True, 0.65),
     "finemath4":    ("HuggingFaceTB/finemath", "finemath-4plus/", "parquet", 1.0, finemath4, "web", False, None),
     "finemath3":    ("HuggingFaceTB/finemath", "finemath-3plus/", "parquet", 0.10, finemath3, "web", False, None),
     "infiwebmath":  ("HuggingFaceTB/finemath", "infiwebmath-3plus/", "parquet", 0.07, infiwebmath, "web", False, None),
@@ -605,6 +603,10 @@ class Rules:
 
     @classmethod
     def english(cls, text, work):
+        """fastText's probability that the prose is English; code blocks are left out, as they confuse it."""
+        text = re.sub(r"```.*?(```|$)", " ", text, flags=re.S)
+        text = re.sub(r"`[^`\n]*`", " ", text)
+        text = "\n".join(l for l in text.split("\n") if not l.startswith(("    ", "\t")))
         if cls.lid is None:
             import fasttext
             fasttext.FastText.eprint = lambda *a, **k: None

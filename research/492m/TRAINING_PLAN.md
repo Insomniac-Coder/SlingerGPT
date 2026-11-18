@@ -11,8 +11,10 @@ Read first, in this order:
 4. `research/492m/finetune_plan.md`: the chat fine-tune, done after pre-training.
 5. `research/arch.py` and `research/train_slinger.py`: the model and the 97M trainer that the new trainer is based on.
 
-Status on 18 November 2026: the design, sizes and schedule are decided. The data list and the fine-tune behaviour
-rules still need the owner's yes. No code for the 492M exists yet, nothing is rented, and nothing is downloaded.
+Status on 18 November 2026: the design, sizes and schedule are decided. Stage A (the code, tested on the CPU) is
+done: see section 8 for what exists, what was found, and the rental-day commands. The data list, the chat layout and
+the fine-tune behaviour rules still need the owner's yes. Nothing is rented; the B200 quota request is waiting at
+Nebius (the owner already has 8 H200s in us-central1).
 
 ---
 
@@ -314,3 +316,92 @@ there.
 | `research/nebius_ctl.py` | create, start, stop, delete the server and disk |
 | `research/492m/mix_492m.json` | per-phase, per-source shares taken from `data_mix.md`, approved by the owner |
 | `research/492m/run_log.md` | what happened on the day: times, speeds, costs, interruptions, decisions |
+
+---
+
+## 8. Stage A: what is ready (18 November 2026)
+
+### The code (branch `ccr-5dd2ad80-fvffsq`)
+
+| File | What it does | Tested |
+|---|---|---|
+| `research/arch.py` | `rope_base` and `set_rope_base()`; document masks (flex attention on the GPU, a written-out mask on the CPU); `build(device=...)` | 492,406,016 weights on a meta build; mask and rotary switch checked |
+| `research/train_492m.py` | the 8-GPU trainer: schedule, mix phases, a reader that follows from the update number alone, saves (15 min, milestones, on SIGTERM/SIGHUP/SIGINT), held-out scores, GPU heat, cost and "text ready ahead" in the log | `research/test_train_492m.py`: 3 CPU processes, every phase crossed |
+| `research/prepare_492m.py` | the text pipeline in rounds (section 5, A.2) | `sample` mode on 300 documents of all 37 inputs, end to end |
+| `research/nebius_ctl.py` | `check`, `prices`, `status`, `price`, `create-disk`, `create-server`, `start`, `stop`, `delete-*`, `ssh`; `--gpu b200` or `--gpu h200`; anything that costs money needs `--yes` | `check`, `prices` and `status` against the real account |
+| `research/492m/make_mix.py`, `mix_492m.json` | per-phase shares from data_mix.md (draft until the owner approves) | shares add up to 100% in every phase; every mixed source has a producer |
+| `research/test_slinger.py` | `SLINGER_HELD_OUT=<data>` scores the 492M's held-out text (per letter, so the pico compares fairly) | |
+
+Trainer test results (CPU, 3 processes, tiny model): the loss falls (5.44 -> 1.45); the copies stay identical at
+every check; only process 0 writes; a run stopped at update 25 and resumed reads exactly the same windows (with one
+process it also ends with exactly the same weights; with several, DDP sums gradients in a different order in the
+first update after a restart, so the weights differ in rounding only); a real `kill -TERM` saves and stops all
+processes in about 1 second, and the run resumes to the end.
+
+### Changes from the plan, and why
+
+- **Launcher:** `train_492m.py train --gpus 8` starts the processes itself instead of `torchrun`. torchrun kills its
+  workers 30 seconds after a SIGTERM, which could cut a save short; this launcher passes the signal on and waits.
+  SIGHUP is handled too, because killing tmux sends it.
+- **Reading order:** each source is read in order as one stream (its finished files, in order), not at random
+  places, so the number of passes over each source is exactly what the shares say. The source of every window slot
+  comes from a low-discrepancy sequence, so the shares hold within a window or two at any point of the run.
+- **Rotary base saved with the model:** the final `.pt` and every save record `rope_base` (1,000,000 after the long
+  phase); without it, a loaded model would be rebuilt with 10,000.
+- **Decontamination:** a public test item counts as copied when at least 4 of its 13-word runs appear (or all, if it
+  has fewer). One shared run was too strict: "in the name of the father and of the son and of the", "1 2 3 ... 13" and
+  textbook formulas removed 4-6% of books and maths sets. Long documents (books, papers, PDFs) lose only the
+  paragraphs with the test text, as data_mix.md says. The project's own test items are removed wherever they appear
+  only if they have 6+ words; shorter ones ("how are you?") only through the close-match rule in question-shaped
+  sources.
+- **Download shares measured on samples:** DCLM-Edu keeps ~1 row in 4 at edu score >= 3, so 4% of its files (not 3%);
+  Cosmopedia's topic filter keeps ~41%, so 70% of its files; FinePDFs-Edu keeps ~6% as computer science, so 15% of
+  its files, and it gets a fastText English check (one "English" PDF was Chinese).
+- **Stack Exchange:** the anneal's best slice is the same thread text with a second output (threads with an accepted
+  or 4+ answer), because two near-identical documents removed each other as copies. Code blocks are left out of the
+  language check (Stack Overflow threads were judged "not English").
+- **Hugging Face downloads:** `hf_transfer` is no longer used by huggingface_hub; its Xet downloader in
+  high-performance mode replaces it.
+- **Not on Hugging Face:** the Python docs come from docs.python.org (3.14, plain text); MDN, tldr-pages and the Rust
+  book from GitHub archives (blocked from the cloud sandbox, expected to work from the server; skipped with a warning
+  if not). OpenStax Intro CS and Open Data Structures are not fetched (PDF/HTML only; tiny). The pico's own held-out
+  documents (data/slinger on the owner's laptop) are not removed: they are not in the repository.
+
+### Nebius findings (18 November)
+
+- Quotas: `compute.instance.gpu.b200` in us-central1 is 0 (the owner's request for 8 is waiting). There is no
+  separate quota for spot servers, so the request covers them. `compute.instance.gpu.h200` is already 8 in
+  us-central1 (also 8 in eu-north1 and eu-west1).
+- Spot prices at 05:39 UTC (`nebius_ctl.py prices`): B200 $3.00 and H200 $2.20 per GPU-hour in us-central1, so
+  $24.00 and $17.60 an hour for 8.
+- 8x H200 instead of 8x B200: the H200 does about 2.3x less 8-bit maths per second, so training takes about 11-17
+  hours instead of 5-7.5. With set-up, the test run and the chat fine-tune, the whole rental is about 14-22 hours and
+  $250-400 on H200, against about 7-11 hours and $170-265 on B200: cheaper per hour, dearer in all. Memory (141 GB a
+  GPU) is still ample.
+
+### The rental day, command by command
+
+From the cloud sandbox (each costing step only after the owner's yes, with the price):
+1. `python research/nebius_ctl.py prices` and `check` (free).
+2. `python research/nebius_ctl.py price --gpu b200 --max <owner's limit> --yes` (the spot price limit; free itself).
+3. `python research/nebius_ctl.py create-disk --yes` (1 TB network SSD).
+4. `python research/nebius_ctl.py create-server --gpu b200 --yes`, then `status` until it is running, then `ssh`.
+5. Copy the code: `git clone -b ccr-5dd2ad80-fvffsq https://github.com/Insomniac-Coder/SlingerGPT /data/code` on the
+   server (the repository is public), or `scp -r` from the sandbox.
+
+On the server (`ssh` from step 4), in `/data/code`:
+6. `python3 -m venv /data/venv && . /data/venv/bin/activate && pip install torch --index-url
+   https://download.pytorch.org/whl/cu128 && pip install torchao tokenizers numpy pyarrow huggingface_hub hf_xet
+   fasttext zstandard` (CUDA 12.8 or newer for Blackwell; the same works on H200).
+7. `python research/test_train_492m.py gpu` (one minute: 8-bit build, flex mask = written-out mask, fused loss,
+   attention speeds).
+8. In tmux: `python research/prepare_492m.py run --data /data/492m --workers 140 --approved` (110 workers on the
+   H200's 128 cores). Round 1 is about 5% of every source. Watch `prepare_492m.py status --data /data/492m`.
+9. Once round 1 is done, the test run: `python research/train_492m.py train --gpus 8 --data /data/492m --name speed
+   --stop-after 300`, trying `--attention cudnn|flash` and `--micro-pieces 32768|65536|131072`; then `kill -TERM`
+   one run and read its save time in the log; then `python research/train_492m.py ratecheck --gpus 8 --data
+   /data/492m`. Stop and tell the owner if the measured speed means more than 9 hours (B200).
+10. The run, in tmux: `python research/train_492m.py train --gpus 8 --data /data/492m --lr <chosen>`. Every 30
+    minutes: `python research/train_492m.py status --data /data/492m`, `prepare_492m.py status`, and a short plain
+    update to the owner (progress, speed, held-out score, money so far, text ready ahead).
+
