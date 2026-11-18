@@ -436,8 +436,9 @@ From the cloud sandbox (each costing step only after the owner's yes, with the p
 
 On the server (`ssh` from step 4), in `/data/code`:
 6. `python3 -m venv /data/venv && . /data/venv/bin/activate && pip install torch --index-url
-   https://download.pytorch.org/whl/cu128 && pip install torchao tokenizers numpy pyarrow huggingface_hub hf_xet
-   fasttext zstandard boto3` (CUDA 12.8 or newer for Blackwell; the same works on H200).
+   https://download.pytorch.org/whl/cu130 && pip install torchao tokenizers numpy pyarrow huggingface_hub hf_xet
+   fasttext zstandard boto3`. Match the wheel to the image's CUDA: cu130 for the CUDA 13 images (the only ones in
+   us-north1; the B300 needs a build that knows sm_103), cu128 for a CUDA 12 image. Step 7 shows whether it works.
 7. `python research/test_train_492m.py gpu` (one minute: 8-bit build, flex mask = written-out mask, fused loss,
    attention speeds).
 7b. While round 1 of the text is being prepared (step 8 runs in another tmux window), the speed checks on made-up
@@ -459,4 +460,70 @@ On the server (`ssh` from step 4), in `/data/code`:
     <the bucket name create-bucket printed>`. Every 30
     minutes: `python research/train_492m.py status --data /data/492m`, `prepare_492m.py status`, and a short plain
     update to the owner (progress, speed, held-out score, money so far, text ready ahead).
+
+---
+
+## 9. Hand-over at the end of the 18 November session
+
+The owner will carry on from another machine. Everything below is on branch `ccr-5dd2ad80-fvffsq`.
+
+### Done and tested (no money spent; nothing exists on Nebius: `nebius_ctl.py status` shows no servers or disks)
+
+- Stage A code (section 8), all CPU tests passing: `python research/test_train_492m.py` (training, resume, real
+  SIGTERM, copies to storage against a local S3 stand-in).
+- `train_492m.py bench` (the 5-minute speed check: about a minute at each window length, then the whole run's hours
+  and cost) and `train_492m.py scaling` (1, 2, 4, 8 GPUs), both able to run on made-up text while round 1 of the text is
+  prepared (owner's request). Tried on the CPU only.
+- The word-piece list, `research/492m/tokenizer.json` (section 8). The rental day passes it with `--tokenizer`.
+- Nebius storage for model copies (decision 5): `nebius_ctl.py create-bucket`, `send-keys`, `bucket`, `download`;
+  `train_492m.py --bucket`.
+- `nebius_ctl.py availability` (free): Nebius's own report of how many 8-GPU servers could start now, spot and
+  regular, per region (up to the account's quota). `--region <r>` works in another region's default project.
+
+### Findings
+
+- **Spot quota is separate from regular quota** (correcting the morning's note): 2 eight-GPU spot servers for most
+  platforms, so spot is limited by Nebius's spare capacity, not quota. Regular B200/B300 quota is 0 (the B200 request
+  is waiting).
+- **Availability moves within hours.** Around 10:00-11:00 UTC: H200 spot in us-central1 "high" (16 GPUs free, the
+  quota); B300 spot in us-north1 "high" (16 free); B300 in eu-west2 went from 16 free to 0; B200 spot in us-central1 0.
+- **Prices move too** (spot, per GPU-hour, us-central1 unless noted): B200 $3.00 -> $3.90 -> $4.20; H200 $2.20 ->
+  $1.58; B300 us-north1 $3.80 -> $4.40, eu-west2 $4.90.
+- **Estimates for the whole job** (training + ~1.5 h set-up and checks, at the afternoon's prices): 8x H200 13-20 h,
+  $160-250; 8x B300 6.5-9 h, $230-320 (the session's recommendation if speed matters); 16x B300 4.5-6.5 h, $280-400
+  (two machines: needs a GPU cluster, shared storage and a multi-machine launcher, not built). The B300's gains over the
+  B200 are in 4-bit maths, which this plan does not use, so it trains at about B200 speed.
+- **Google Cloud** spot (Iowa, 18 November, cloud.google.com/spot-vms/pricing): 8x B200 $43.60/h, 8x H200 $50.87/h,
+  8x H100 $47.74-52.70/h, 8x A100 80GB $24.03/h. Dearer than Nebius for every option; 30 s preemption notice.
+- **Nebius billing is per second**; disks and buckets are charged while they exist.
+- **us-north1** has only CUDA 13 images (`ubuntu24.04-cuda13-latest`); `create-server` now picks the newest Ubuntu CUDA
+  image the region has. The default subnet exists there.
+- **The Claude Code cloud sandbox cannot SSH to a rented server**: outbound port 22 is blocked, port 443 is
+  intercepted (no raw TCP), there is no ssh client and apt cannot install one. HTTPS works (the Nebius API and storage).
+  From a normal computer the rental-day steps work as written (`nebius_ctl.py ssh` prints the login command; the key
+  is made in `~/.ssh/slingergpt_492m` on the machine that runs `create-server`, so run it where you will log in from).
+  To drive the server from the sandbox instead, the idea (not built): cloud-init starts a small helper on the server
+  that reads instructions from the Nebius bucket and writes its output back there.
+
+### The proposed test session on 8x B300 (not started; needs the owner's yes and a B300 price limit)
+
+`nebius_ctl.py --region us-north1`: `create-disk`, `create-server --gpu b300` (spot, about $35/h), then steps 5-7b of
+section 8 on made-up text (software install, `test_train_492m.py gpu`, `train_492m.py scaling --gpus 8
+--made-up-text`, `bench --gpus 8 --made-up-text` with the attention and micro-batch options), then `delete-server` and
+`delete-disk`. About 45-60 minutes, roughly $25-35. It gives the measured speed at every window length, the projected
+hours and cost of the full run, and how well 8 GPUs scale.
+
+### Still open
+
+- Which GPUs for the run (8x H200 in us-central1, or 8x B300 in us-north1), and a price limit for B300 (it was $4.40).
+- Decision 4: the chat fine-tune in the same rental, or later. Decision 6: the fine-tune's behaviour rules
+  (`finetune_plan.md`), before the fine-tune only. A fine-tune script for the 492M is not written yet.
+- The pico's own held-out documents (data/slinger on the owner's laptop) are not excluded from the 492M's text.
+
+### Commands to re-check before renting (all free)
+
+    python research/nebius_ctl.py prices
+    python research/nebius_ctl.py availability
+    python research/nebius_ctl.py check [--region us-north1]
+    python research/nebius_ctl.py status [--region us-north1]
 
