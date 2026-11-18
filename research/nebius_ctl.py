@@ -292,12 +292,14 @@ async def main():
                                     "delete-server", "delete-disk", "ssh"])
     p.add_argument("--yes", action="store_true", help="the owner said yes to what this costs")
     p.add_argument("--gb", type=int, default=1000, help="data disk size (owner: 1 TB is enough)")
-    p.add_argument("--max", type=float, default=3.0, help="price: the most to pay per GPU-hour, in US dollars")
+    p.add_argument("--max", type=float, default=0.0,
+                   help="price: the most to pay per GPU-hour in US dollars (default: the owner's limit for --gpu)")
     p.add_argument("--gpu", choices=sorted(GPUS), default="b200", help="which 8-GPU server (price and create-server)")
     args = p.parse_args()
     global PLATFORM, PRESET, POLICY
     PLATFORM, PRESET = GPUS[args.gpu]
     POLICY = f"slingergpt-492m-spot-{args.gpu}"
+    args.max = args.max or {"b200": 3.00, "h200": 2.20}[args.gpu]   # owner, 18 November: the day's spot price
     project = credentials()
     s = sdk()
     try:

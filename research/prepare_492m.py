@@ -5,6 +5,8 @@
     python research/prepare_492m.py run --data /data/492m --workers 96 --approved
                                                                      all rounds; the trainer can start after round 1
     python research/prepare_492m.py status --data /data/492m         what is ready, per source
+    python research/prepare_492m.py tokenizer --data DIR --workers 4 the word-piece list from streamed samples (any
+                                                                     machine; run then uses it with --tokenizer)
 
 Each round, for every source: download its next files -> clean -> remove copies -> cut into pieces.
   download   the source's files from Hugging Face (Xet, high-performance mode), in a fixed random order; round 1 takes about 5% of
@@ -1366,9 +1368,71 @@ def finished_after(plan, rnd):
             if all(not any(plan.get(a, [[]])[r] for r in range(rnd + 1, len(plan.get(a, [[]])))) for a in adapters)]
 
 
+def tokenizer_here(data, work, sample_mb, workers, log):
+    """The word-piece list from streamed samples of every source, without downloading whole files (so it can be built
+    on any machine before the rental). Two passes: 1,000 rows of each file measure how much cleaned text each source
+    gives per row; then each source reads enough rows to fill its share of a sample_mb sample."""
+    import pyarrow.parquet as pq
+    os.environ["TOKENIZERS_PARALLELISM"] = "true"
+    feeding = collections.defaultdict(list)
+    for a, outs in ADAPTER_OUTS.items():
+        for o in outs:
+            if o in TOKENIZER_SAMPLE:
+                feeding[o].append(a)
+    adapters = sorted({a for v in feeding.values() for a in v})
+    nfiles = {a: (24 if a == "stack_edu" else 3) for a in adapters}   # Stack-Edu's files are one language each
+    files = {a: list_files(a)[:nfiles[a]] for a in adapters}
+    total = sum(TOKENIZER_SAMPLE.values())
+    want = {o: sample_mb * 1e6 * v / total for o, v in TOKENIZER_SAMPLE.items()}
+
+    def clean_all(rnd, limits):
+        tasks = [(a, f, rnd, i, str(work), limits[a]) for a in adapters for i, f in enumerate(files[a])]
+        with get_context("fork").Pool(workers, maxtasksperchild=2) as pool:
+            for a, f, info in pool.imap_unordered(clean_safely, tasks):
+                if "error" in info:
+                    log(f"WARNING: {a} {f}: {info['error']}")
+        return sorted((work / "clean" / f"r{rnd}").glob("*/*.parquet"))
+    log(f"word-piece list: measuring {len(adapters)} sources")
+    rate = collections.defaultdict(float)   # letters of cleaned text per row read, per (adapter, output)
+    for shard in clean_all(90, {a: 1000 for a in adapters}):
+        a = shard.parent.name
+        t = pq.read_table(shard, columns=["text", "outs"])
+        for text, outs in zip(t["text"].to_pylist(), t["outs"].to_pylist()):
+            for o in outs:
+                rate[(a, o)] += len(text.encode()) / (1000 * len(files[a]))
+    limits = {}
+    for o, adapters_of in feeding.items():
+        per_row = sum(rate[(a, o)] for a in adapters_of)
+        rows = math.ceil(1.3 * want[o] / per_row) if per_row else 0
+        for a in adapters_of:
+            limits[a] = max(limits.get(a, 1000), min(400_000, math.ceil(rows / len(files[a]))))
+    log(f"word-piece list: reading {json.dumps(limits)} rows per file")
+    shards = clean_all(91, limits)
+    order = PRIORITY + sorted(set(adapters) - set(PRIORITY))
+    shards.sort(key=lambda p: (order.index(p.parent.name) if p.parent.name in order else 99, p.name))
+    dedup(work, 91, [str(x) for x in shards])
+    t0 = time.time()
+    info = train_tokenizer(work, data, [str(x) for x in shards], sample_mb * 1e6)
+    log(f"word-piece list trained in {time.time() - t0:.0f} s: {info}")
+    from tokenizers import Tokenizer
+    tok = Tokenizer.from_file(str(data / "tokenizer.json"))
+    per, texts = collections.defaultdict(lambda: [0, 0]), []
+    for shard in shards:   # letters per piece, on held-out documents of each source
+        t = pq.read_table(shard, columns=["text", "outs", "val"])
+        for text, outs, val in zip(t["text"].to_pylist(), t["outs"].to_pylist(), t["val"].to_pylist()):
+            if val:
+                texts.append(text)
+                n = len(tok.encode(text, add_special_tokens=False).ids)
+                for o in outs:
+                    per[o][0] += len(text.encode())
+                    per[o][1] += n
+    log("letters per piece on held-out documents: " + ", ".join(f"{o} {b / max(1, n):.2f}" for o, (b, n) in sorted(per.items())))
+    log(f"checks: {check_tokenizer(tok, texts)}")
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("what", choices=["sample", "run", "status"])
+    p.add_argument("what", choices=["sample", "run", "status", "tokenizer"])
     p.add_argument("--data", default="/data/492m")
     p.add_argument("--work", default="", help="downloads and intermediate files (default <data>/work)")
     p.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 16))
@@ -1400,6 +1464,9 @@ def main():
             f.write(line + "\n")
     os.environ.setdefault("HF_XET_HIGH_PERFORMANCE", "1")   # fast downloads (huggingface_hub 1.x and later: Xet)
     setup(work)
+    if a.what == "tokenizer":
+        tokenizer_here(data, work, a.sample_mb, a.workers, log)
+        return
     adapters = [x for x in (a.only.split(",") if a.only else ADAPTERS)]
     limit = a.docs if a.what == "sample" else 0
     plan = plan_files(work, adapters, limit)
