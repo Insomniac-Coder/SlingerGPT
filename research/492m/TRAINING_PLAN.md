@@ -169,18 +169,23 @@ Ask these one at a time, in plain words, each with a recommendation:
 1. A Nebius AI Cloud account with a payment card attached.
 2. In the Nebius console: enough quota for 8 B200 GPUs (spot/preemptible) in the chosen region (us-central1 had
    B200 spot on 18 November). Ask Nebius support for more if the default is lower.
-3. A Nebius **service account** with permission to manage virtual machines, disks and storage buckets in this one
-   project, and nothing else (no billing). Create an **authorized key** for it and download its credentials file.
-4. In the cloud session's environment settings:
-   - add the credentials file's contents as a secret (for example `NEBIUS_CREDENTIALS_JSON`); never commit it or
-     paste it into chat;
-   - add the project ID and region (not secret);
-   - optionally a Hugging Face read token (`HF_TOKEN`) for faster, less limited downloads.
-5. Check that the cloud environment's network access allows the Nebius API and SSH to outside addresses. If not, the
+3. A Nebius **service account** (Administration -> IAM -> Create resource -> Service account), added to the
+   `editors` group so it can create and delete servers and disks.
+4. An **authorized key** for it:
+   - a key pair is made with `openssl` (`private.pem`, `public.pem`);
+   - `public.pem` is uploaded on the service account's page (Upload authorized key);
+   - the key's ID is copied from its Authorized keys tab.
+   The console does not make the key pair itself.
+5. In the cloud session's environment settings:
+   - `NEBIUS_PRIVATE_KEY`: the contents of `private.pem`. Secret: never commit it or paste it into chat.
+   - `NEBIUS_KEY_ID`, `NEBIUS_SERVICE_ACCOUNT_ID`, `NEBIUS_PROJECT_ID` and `NEBIUS_REGION` (us-central1). Not secret.
+   - Optionally a Hugging Face read token (`HF_TOKEN`) for faster, less limited downloads.
+6. Check that the cloud environment's network access allows the Nebius API and SSH to outside addresses. If not, the
    environment needs full network access.
 
-The session writes the credentials secret to a file only it can read (`chmod 600`) and passes the file to the SDK
-(`SDK(credentials_file_name=...)`).
+The session writes the private key to a file only it can read (`chmod 600`) and passes it to the SDK:
+`SDK(parent_id=..., service_account_private_key_file_name=..., service_account_public_key_id=...,
+service_account_id=...)`.
 
 ---
 
