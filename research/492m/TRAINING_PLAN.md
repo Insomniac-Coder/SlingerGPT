@@ -392,6 +392,9 @@ processes in about 1 second, and the run resumes to the end.
 - 18 November, decision 1 (Nemotron-CC Diverse QA): use it.
 - 18 November, decision 1 (the data list as a whole): approved, with Simple Wikipedia trimmed from 0.43% to 0.40% of
   the run (the difference to FineWiki), so it is read at most about 4 times.
+- 18 November, decision 2 (chat layout): plain "System:/User:/Assistant:" lines, as the pico and the chat page; 16
+  special pieces reserved in the word-piece list (prepare_492m.SPECIAL) for later use.
+- 18 November, the chat behaviour filters: the owner wants some changed (which ones: asked).
 
 ### The rental day, command by command
 

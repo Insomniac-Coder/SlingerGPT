@@ -565,9 +565,11 @@ def docs_web(row):
 
 # ------------------------------------------------------------------------------------------------------- cleaning
 
-ASSISTANTS = re.compile(r"\b(SmolLM|ChatGPT|GPT-?4|GPT-?3\.5|OpenAI|Claude|Anthropic|Llama|LLaMA|Meta AI|Qwen|Gemma|"
-                        r"Gemini|Bard|Mistral|Mixtral|DeepSeek|Copilot)\b|as an ai language model|as a language model",
-                        re.I)
+NAMES = r"(SmolLM|ChatGPT|GPT-?4o?|GPT-?3\.5|OpenAI|Claude|Anthropic|Llama|Meta AI|Qwen|Alibaba|Gemma|Gemini|Bard|Google|" \
+        r"Mistral|Mixtral|DeepSeek|Copilot|Microsoft)"
+ASSISTANTS = re.compile(   # the assistant naming itself as another assistant, or its maker; a mere mention is fine
+    rf"\b(i am|i'm|i was|my name is|as an?|this is|developed by|created by|trained by|built by|made by|from)\b[^.\n]{{0,30}}"
+    rf"\b{NAMES}\b|as an ai language model|as a large language model|as a language model", re.I)
 REFUSAL = re.compile(r"^(i'?m sorry|sorry|i apologi[sz]e|i cannot|i can'?t|i am unable|i'm unable|unfortunately,? i)"
                      r"[^.]{0,120}(can'?t|cannot|unable|not able|not allowed|won'?t)", re.I)
 DONT_KNOW = re.compile(r"^\W*(i\s+(do\s*n[o']?t|don'?t)\s+know|i'?m not sure)\W*$", re.I)
