@@ -389,6 +389,18 @@ processes in about 1 second, and the run resumes to the end.
   $250-400 on H200, against about 7-11 hours and $170-265 on B200: cheaper per hour, dearer in all. Memory (141 GB a
   GPU) is still ample.
 
+### The word-piece list (built in the cloud sandbox, 18 November)
+
+`research/492m/tokenizer.json`: 16,384 byte-level BPE pieces, `<|endoftext|>` = 0 and 16 reserved special pieces
+(`prepare_492m.SPECIAL`), digits one by one. Trained by `prepare_492m.py tokenizer --sample-mb 3000` on 2.87 GB of
+cleaned, decontaminated, deduplicated text streamed from every approved source in data_mix.md's sample shares
+(documents capped at 20 KB). The manuals were short of their share (46%: MDN could not be fetched from the sandbox)
+and DOAB too (25%); both are small. Checks: exact round trip on 15,887 held-out documents; letters per piece about 4.0-4.7
+on prose (FineWeb-Edu 4.10, DCLM-Edu 4.04, Cosmopedia 4.72, books and papers 3.5-4.3), 2.8-3.3 on code and maths,
+about 3 on Wikipedia (dates, numbers and tables). A first build showed Wikipedia tables padded with hundreds of
+spaces; prepare_492m.layout_fix() now squeezes that out, which cut the padding-only pieces from 86 to 49 (those left
+come from code indentation and banners).
+
 ### The owner's answers (section 3)
 
 - 18 November, decision 1 (commercial use): "It will be free to use model, no paid users." So no commercial use:
@@ -436,8 +448,8 @@ On the server (`ssh` from step 4), in `/data/code`:
      (1,024, 2,048, 4,096, 16,384 with the document mask), then the whole run's hours and cost at the measured speeds.
      Try `--attention cudnn|flash` and `--micro-pieces 32768|65536|131072`, keep the fastest, and tell the owner the
      projected hours and cost before the run starts.
-8. In tmux: `python research/prepare_492m.py run --data /data/492m --workers 140 --approved` (110 workers on the
-   H200's 128 cores). Round 1 is about 5% of every source. Watch `prepare_492m.py status --data /data/492m`.
+8. In tmux: `python research/prepare_492m.py run --data /data/492m --workers 140 --approved --tokenizer
+   research/492m/tokenizer.json` (110 workers on the H200's 128 cores; the word-piece list is already built). Round 1 is about 5% of every source. Watch `prepare_492m.py status --data /data/492m`.
 9. Once round 1 is done, the test run: `python research/train_492m.py bench --gpus 8 --data /data/492m` (the same
    5-minute check on the real text, with the fastest settings from 7b), then `train --gpus 8 --data /data/492m --name
    speed --stop-after 300` and `kill -TERM` it to read its save time in the log, then `python
