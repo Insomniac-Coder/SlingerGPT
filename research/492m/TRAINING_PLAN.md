@@ -354,9 +354,13 @@ processes in about 1 second, and the run resumes to the end.
   paragraphs with the test text, as data_mix.md says. The project's own test items are removed wherever they appear
   only if they have 6+ words; shorter ones ("how are you?") only through the close-match rule in question-shaped
   sources.
-- **Download shares measured on samples:** DCLM-Edu keeps ~1 row in 4 at edu score >= 3, so 4% of its files (not 3%);
-  Cosmopedia's topic filter keeps ~41%, so 70% of its files; FinePDFs-Edu keeps ~6% as computer science, so 15% of
-  its files, and it gets a fastText English check (one "English" PDF was Chinese).
+- **Download shares measured on samples:** each source's share of files to download was set from the samples so it
+  is read about 0.6-0.9 times (DCLM-Edu keeps ~1 row in 4 at edu score >= 3: 3.5% of its files; Cosmopedia's topic
+  filter keeps ~41%: 50%; FinePDFs-Edu keeps ~6% as computer science: 10%; FineMath-4+ 60%; FineMath-3+ 15%;
+  Essential-Web 5%). FinePDFs-Edu also gets a fastText English check (one "English" PDF was Chinese).
+- **Supply estimates (footer row counts x the samples):** everything is read at most ~1.7 times except Simple Wikipedia
+  (~4.3 times: its stubs under 50 words are dropped, so it is smaller than data_mix.md assumed). WildChat keeps ~59% of
+  its chats (English, not toxic, the behaviour filters), about 0.7B pieces for the 0.53B needed.
 - **Stack Exchange:** the anneal's best slice is the same thread text with a second output (threads with an accepted
   or 4+ answer), because two near-identical documents removed each other as copies. Code blocks are left out of the
   language check (Stack Overflow threads were judged "not English").

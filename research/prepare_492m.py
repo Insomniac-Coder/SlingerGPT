@@ -390,12 +390,14 @@ def archwiki(row):
     return [(f"# {row.get('title', '')}\n{row.get('content', '')}", ["docs"], row.get("url_path"), None)]
 
 
+# `use` was set from the 300-document samples (18 November) so each source is read about 0.6-0.9 times: enough
+# margin for the estimates, without downloading text that is never read. make_mix.py --measured checks it after round 1.
 # kind: which cleaning rules apply. near: in the near-copy pool. lid: fastText English threshold (None: not checked).
 ADAPTERS = {
     #  name           repo                                            files under    reader    use     row      kind      near  lid
     "fineweb":      ("HuggingFaceTB/smollm-corpus", "fineweb-edu-dedup/", "parquet", 0.10, fineweb, "web", True, None),
-    "dclm":         ("HuggingFaceTB/dclm-edu", "data/", "parquet", 0.04, dclm, "web", True, None),   # ~1 in 4 rows has edu >= 3
-    "cosmopedia":   ("HuggingFaceTB/smollm-corpus", "cosmopedia-v2/", "parquet", 0.70, cosmopedia, "synthetic", False, None),
+    "dclm":         ("HuggingFaceTB/dclm-edu", "data/", "parquet", 0.035, dclm, "web", True, None),   # ~1 in 4 rows has edu >= 3
+    "cosmopedia":   ("HuggingFaceTB/smollm-corpus", "cosmopedia-v2/", "parquet", 0.50, cosmopedia, "synthetic", False, None),
     "nemotron":     ("commoncrawl:Nemotron-CC", "quality=high/kind=synthetic/kind2=diverse_qa_pairs/", "zstd", 0.01, nemotron, "synthetic", False, None),
     "stack_edu":    ("common-pile/stackv2_edu_filtered", "", "jsongz", 1.0, stack_edu, "code", False, None),
     "stack_html":   ("common-pile/stackv2_html_filtered", "", "jsongz", 1.0, stack_html, "code", False, None),
@@ -403,15 +405,15 @@ ADAPTERS = {
     "opencoder_qa": ("OpenCoder-LLM/opc-annealing-corpus", "synthetic_qa/", "jsonl", 0.15, opencoder, "code", False, None),
     "opencoder_sn": ("OpenCoder-LLM/opc-annealing-corpus", "synthetic_code_snippet/", "jsonl", 0.15, opencoder, "code", False, None),
     "stackexchange": ("HuggingFaceH4/stack-exchange-preferences", "data/", "parquet", 1.0, stack_exchange, "se", True, 0.65),
-    "essential":    ("EssentialAI/eai-taxonomy-code-w-dclm-100b-sample", "data/", "parquet", 0.08, essential, "web", True, 0.65),
+    "essential":    ("EssentialAI/eai-taxonomy-code-w-dclm-100b-sample", "data/", "parquet", 0.05, essential, "web", True, 0.65),
     "libretexts":   ("common-pile/libretexts_filtered", "", "jsongz", 1.0, libretexts, "web", True, 0.65),
     "pressbooks":   ("common-pile/pressbooks_filtered", "", "jsongz", 1.0, pressbooks, "web", True, 0.65),
     "peps":         ("common-pile/python_enhancement_proposals_filtered", "", "jsongz", 1.0, peps, "docs", False, None),
     "archwiki":     ("hannah-eee/arch-wiki-docs", "", "jsonl", 1.0, archwiki, "docs", False, None),
     "docs_web":     ("web:docs", "", "web", 1.0, None, "docs", False, None),
-    "finepdfs":     ("HuggingFaceFW/finepdfs-edu", "data/eng_Latn/", "parquet", 0.15, finepdfs, "pdf", True, 0.65),
-    "finemath4":    ("HuggingFaceTB/finemath", "finemath-4plus/", "parquet", 1.0, finemath4, "web", False, None),
-    "finemath3":    ("HuggingFaceTB/finemath", "finemath-3plus/", "parquet", 0.10, finemath3, "web", False, None),
+    "finepdfs":     ("HuggingFaceFW/finepdfs-edu", "data/eng_Latn/", "parquet", 0.10, finepdfs, "pdf", True, 0.65),
+    "finemath4":    ("HuggingFaceTB/finemath", "finemath-4plus/", "parquet", 0.60, finemath4, "web", False, None),
+    "finemath3":    ("HuggingFaceTB/finemath", "finemath-3plus/", "parquet", 0.15, finemath3, "web", False, None),
     "infiwebmath":  ("HuggingFaceTB/finemath", "infiwebmath-3plus/", "parquet", 0.07, infiwebmath, "web", False, None),
     "orca":         ("microsoft/orca-math-word-problems-200k", "data/", "parquet", 1.0, orca, "maths", False, None),
     "metamath":     ("meta-math/MetaMathQA", "MetaMathQA-395K.json", "json", 1.0, metamath, "maths", False, None),
