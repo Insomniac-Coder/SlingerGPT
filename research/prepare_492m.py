@@ -24,7 +24,8 @@ behaviour filters on chats (BEHAVIOUR below). `run` refuses to start without --a
 """
 import argparse, bz2, collections, gzip, hashlib, html, html.parser, io, json, math, os, random, re, shutil, sys
 import tarfile, time, unicodedata, urllib.request, zipfile, zlib
-from multiprocessing import get_context
+from multiprocessing import get_context   # "spawn": fresh worker processes; copies of a parent that already runs
+                                          # threads (pyarrow, Hugging Face's Xet downloader) can freeze
 from pathlib import Path
 import numpy as np
 
@@ -1407,7 +1408,7 @@ def tokenizer_here(data, work, sample_mb, workers, log):
 
     def clean_all(rnd, limits):
         tasks = [(a, f, rnd, i, str(work), limits[a]) for a in adapters for i, f in enumerate(files[a])]
-        with get_context("fork").Pool(workers, maxtasksperchild=2) as pool:
+        with get_context("spawn").Pool(workers, maxtasksperchild=2) as pool:
             for a, f, info in pool.imap_unordered(clean_safely, tasks):
                 if "error" in info:
                     log(f"WARNING: {a} {f}: {info['error']}")
@@ -1490,7 +1491,7 @@ def main():
     adapters = [x for x in (a.only.split(",") if a.only else ADAPTERS)]
     limit = a.docs if a.what == "sample" else 0
     plan = plan_files(work, adapters, limit)
-    with get_context("fork").Pool(a.workers, maxtasksperchild=4) as pool:
+    with get_context("spawn").Pool(a.workers, maxtasksperchild=4) as pool:
         for rnd in range(ROUNDS):
             run_round(rnd, plan, work, data, pool, limit, a.tokenizer,
                       a.sample_mb if not limit else min(a.sample_mb, 50), log)
