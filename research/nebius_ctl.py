@@ -9,6 +9,10 @@
     python research/nebius_ctl.py create-server --yes        8x B200 (or --gpu h200) spot server, data disk at /data
     python research/nebius_ctl.py stop --yes | start --yes | delete-server --yes | delete-disk --yes
     python research/nebius_ctl.py ssh                        the command to log in
+    python research/nebius_ctl.py create-bucket --yes        Nebius storage for copies of the model, and its access key
+    python research/nebius_ctl.py send-keys                  the storage key to the server (for train_492m.py --bucket)
+    python research/nebius_ctl.py bucket                     what is in the storage (free)
+    python research/nebius_ctl.py download [--file 50B.pt]   the newest model from the storage: no server needed
 
 Everything that costs money needs --yes, and the session asks the owner first (TRAINING_PLAN.md section 1).
 The server is disposable; the data disk holds everything that matters. If this sandbox loses its SSH key, run
@@ -32,6 +36,7 @@ GPUS = {   # --gpu: the platform and its 8-GPU preset (checked against the platf
 PLATFORM, PRESET = GPUS["b200"]
 IMAGE_FAMILY = "ubuntu24.04-cuda12"
 SSH_KEY = Path.home() / ".ssh" / "slingergpt_492m"
+STORAGE_KEY = Path.home() / ".nebius" / "slingergpt_storage_key.json"   # the bucket's access key; never printed
 KEY_FILE = Path.home() / ".nebius" / "slingergpt_sa_key.pem"
 
 
@@ -277,6 +282,90 @@ async def delete(s, project, args, what):
     print(f"deleted the {what}" + (" (the data disk is kept)" if what == "server" else ""))
 
 
+def bucket_name(project):
+    return f"slingergpt-492m-{project.split('-')[-1]}"   # bucket names are shared by everyone: the project id keeps it ours
+
+
+async def create_bucket(s, project, args):
+    """Nebius storage for copies of the model (the owner's choice, 18 November), and an access key for it."""
+    yes_or_stop(args, "a storage bucket (paid by the GB stored)")
+    from nebius.api.nebius.storage.v1 import BucketServiceClient, CreateBucketRequest, BucketSpec
+    from nebius.api.nebius.iam.v2 import (AccessKeyServiceClient, CreateAccessKeyRequest, AccessKeySpec,
+                                          SecretDeliveryMode, GetAccessKeySecretRequest)
+    from nebius.api.nebius.iam.v1 import Account
+    from nebius.api.nebius.common.v1 import ResourceMetadata
+    svc, name = BucketServiceClient(s), bucket_name(project)
+    if await find(svc, project, name):
+        print(f"bucket {name} already exists")
+    else:
+        await (await svc.create(CreateBucketRequest(metadata=ResourceMetadata(parent_id=project, name=name),
+                                                    spec=BucketSpec()))).wait()
+        print(f"created bucket {name}")
+    if STORAGE_KEY.exists():
+        print(f"access key already saved in {STORAGE_KEY}")
+        return
+    keys = AccessKeyServiceClient(s)
+    op = await keys.create(CreateAccessKeyRequest(
+        metadata=ResourceMetadata(parent_id=project, name="slingergpt-492m-storage"),
+        spec=AccessKeySpec(account=Account(service_account=Account.ServiceAccount(id=os.environ["NEBIUS_SERVICE_ACCOUNT_ID"])),
+                           description="SlingerGPT 492M: model copies", secret_delivery_mode=SecretDeliveryMode.INLINE)))
+    await op.wait()
+    secret = await keys.get_secret(GetAccessKeySecretRequest(id=op.resource_id))
+    STORAGE_KEY.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(STORAGE_KEY, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        json.dump({"aws_access_key_id": secret.aws_access_key_id, "secret": secret.secret, "bucket": name}, f)
+    print(f"access key saved in {STORAGE_KEY} (only this user can read it)")
+
+
+def s3():
+    import boto3
+    k = json.loads(STORAGE_KEY.read_text())
+    region = os.environ.get("NEBIUS_REGION", "us-central1")
+    return boto3.client("s3", endpoint_url=f"https://storage.{region}.nebius.cloud", region_name=region,
+                        aws_access_key_id=k["aws_access_key_id"], aws_secret_access_key=k["secret"]), k["bucket"]
+
+
+async def bucket(s, project, args):
+    """What is in the storage (free)."""
+    client, name = s3()
+    items = client.list_objects_v2(Bucket=name).get("Contents", [])
+    print(f"bucket {name}: {len(items)} files" + ("" if items else " (empty)"))
+    for o in sorted(items, key=lambda o: o["LastModified"]):
+        print(f"  {o['Key']:50s} {o['Size'] / 1e9:7.2f} GB  {o['LastModified']:%Y-%m-%d %H:%M} UTC")
+
+
+async def download(s, project, args):
+    """The newest model copy (or --file), with its word-piece list, into --to: no server needed."""
+    client, name = s3()
+    items = client.list_objects_v2(Bucket=name).get("Contents", [])
+    pick = [o for o in items if o["Key"].endswith(args.file or "/latest.pt")]
+    if not pick:
+        sys.exit(f"nothing called {args.file or 'latest.pt'} in {name} yet")
+    newest = max(pick, key=lambda o: o["LastModified"])
+    run = newest["Key"].split("/")[0]
+    to = Path(args.to)
+    to.mkdir(parents=True, exist_ok=True)
+    for key in (newest["Key"], f"{run}/tokenizer.json"):
+        client.download_file(name, key, str(to / key.replace("/", "_")))
+        print(f"downloaded {key} -> {to / key.replace('/', '_')}")
+
+
+async def send_keys(s, project, args):
+    """The storage key to the server (scp, over the SSH key made by create-server), for the trainer's copies."""
+    from nebius.api.nebius.compute.v1 import InstanceServiceClient
+    i = await find(InstanceServiceClient(s), project, NAME)
+    ips = [n.public_ip_address.address.split("/")[0] for n in i.status.network_interfaces if n.public_ip_address] if i else []
+    if not ips:
+        sys.exit(f"{NAME} is not running")
+    target = f"slinger@{ips[0]}"
+    opts = ["-i", str(SSH_KEY), "-o", "StrictHostKeyChecking=accept-new"]
+    subprocess.run(["ssh", *opts, target, "mkdir -p ~/.nebius && chmod 700 ~/.nebius"], check=True)
+    subprocess.run(["scp", *opts, str(STORAGE_KEY), f"{target}:.nebius/{STORAGE_KEY.name}"], check=True)
+    subprocess.run(["ssh", *opts, target, f"chmod 600 ~/.nebius/{STORAGE_KEY.name}"], check=True)
+    print(f"storage key copied to the server; train with --bucket {json.loads(STORAGE_KEY.read_text())['bucket']}")
+
+
 async def ssh(s, project, args):
     from nebius.api.nebius.compute.v1 import InstanceServiceClient
     i = await find(InstanceServiceClient(s), project, NAME)
@@ -288,10 +377,12 @@ async def ssh(s, project, args):
 
 async def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("what", choices=["check", "prices", "status", "price", "create-disk", "create-server", "start", "stop",
+    p.add_argument("what", choices=["check", "prices", "status", "price", "create-bucket", "bucket", "download", "send-keys", "create-disk", "create-server", "start", "stop",
                                     "delete-server", "delete-disk", "ssh"])
     p.add_argument("--yes", action="store_true", help="the owner said yes to what this costs")
     p.add_argument("--gb", type=int, default=1000, help="data disk size (owner: 1 TB is enough)")
+    p.add_argument("--to", default="models", help="download: the folder to put the model in")
+    p.add_argument("--file", default="", help="download: a file name in the bucket, e.g. 50B.pt (default: the newest latest.pt)")
     p.add_argument("--max", type=float, default=0.0,
                    help="price: the most to pay per GPU-hour in US dollars (default: the owner's limit for --gpu)")
     p.add_argument("--gpu", choices=sorted(GPUS), default="b200", help="which 8-GPU server (price and create-server)")
@@ -303,7 +394,8 @@ async def main():
     project = credentials()
     s = sdk()
     try:
-        await {"check": check, "prices": prices, "status": status, "price": price, "create-disk": create_disk, "create-server": create_server,
+        await {"check": check, "prices": prices, "status": status, "create-bucket": create_bucket, "bucket": bucket,
+               "download": download, "send-keys": send_keys, "price": price, "create-disk": create_disk, "create-server": create_server,
                "start": lambda *a: power(*a, on=True), "stop": lambda *a: power(*a, on=False),
                "delete-server": lambda *a: delete(*a, what="server"), "delete-disk": lambda *a: delete(*a, what="disk"),
                "ssh": ssh}[args.what](s, project, args)

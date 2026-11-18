@@ -20,6 +20,10 @@ windows it would have read. GPU r takes slots r, r + G, r + 2G, ... of each upda
 If a source's preparation falls behind the reading, its windows are read from a random place in what is ready
 (a repeat) and the log says so: tell the owner.
 
+Copies in Nebius storage (--bucket; the owner's choice, 18 November): after every save, a ready-to-use 16-bit model
+(about 1 GB) goes to s3://<bucket>/<name>/latest.pt, each milestone's to <name>/<N>B.pt, and at the end the full save
+for further training, so the model can be downloaded with no server running. Uploads run in a background thread.
+
 Saving: every 15 minutes (the last 2 are kept), a full copy at the end of each schedule segment and at 74B, and on
 SIGTERM, SIGHUP or SIGINT (Nebius sends SIGTERM 60 seconds before it stops a spot server; tmux passes SIGHUP when
 it is killed). At the start of every update the processes agree, with one tiny all-reduce, whether any of them was
@@ -246,6 +250,55 @@ class Reader:
                 if not self.streams.complete(n)}
 
 
+# ---------------------------------------------------------------------------------------------- Nebius storage
+
+class Uploader:
+    """Copies files to an S3 bucket (Nebius Object Storage) in a background thread. A newer copy of the same name
+    replaces one still waiting, so a slow upload never piles up work. Keys: a JSON file with aws_access_key_id and
+    secret (written by nebius_ctl.py create-bucket, never printed)."""
+    def __init__(self, bucket, keys, endpoint, region, prefix):
+        import boto3
+        k = json.loads(Path(keys).read_text())
+        self.s3 = boto3.client("s3", endpoint_url=endpoint or f"https://storage.{region}.nebius.cloud", region_name=region,
+                               aws_access_key_id=k["aws_access_key_id"], aws_secret_access_key=k["secret"])
+        self.bucket, self.prefix = bucket, prefix
+        self.waiting, self.lock, self.busy, self.done, self.errors = {}, threading.Condition(), None, [], []
+        threading.Thread(target=self.loop, daemon=True).start()
+
+    def put(self, path, key, remove=False):
+        with self.lock:
+            self.waiting[key] = (Path(path), remove)
+            self.lock.notify()
+
+    def loop(self):
+        while True:
+            with self.lock:
+                while not self.waiting:
+                    self.lock.wait()
+                key, (path, remove) = next(iter(self.waiting.items()))
+                del self.waiting[key]
+                self.busy = key
+            try:
+                self.s3.upload_file(str(path), self.bucket, f"{self.prefix}/{key}")
+                self.done.append(key)
+            except Exception as e:
+                self.errors.append(f"{key}: {type(e).__name__}: {e}"[:300])
+            finally:
+                if remove:
+                    path.unlink(missing_ok=True)
+                with self.lock:
+                    self.busy = None
+                    self.lock.notify_all()
+
+    def wait(self, seconds):
+        """Waits up to `seconds` for every upload to finish; True if they did."""
+        end = time.time() + seconds
+        with self.lock:
+            while (self.waiting or self.busy) and time.time() < end:
+                self.lock.wait(timeout=max(0.1, end - time.time()))
+            return not (self.waiting or self.busy)
+
+
 # ------------------------------------------------------------------------------------------------------- the model
 
 class Loss(nn.Module):
@@ -383,6 +436,21 @@ def run(rank, world, args, device, stop, lr, name, fresh):
                 f.write(line + "\n")
             print(line, flush=True)
 
+    upload = Uploader(args.bucket, args.bucket_keys, args.bucket_endpoint, args.bucket_region, name) \
+        if lead and args.bucket else None
+    if upload and Path(Path(args.data) / "tokenizer.json").exists():
+        upload.put(Path(args.data) / "tokenizer.json", "tokenizer.json")
+
+    def model_copy(key):
+        """The ready-to-use 16-bit model (with its settings) into Nebius storage, as `key`."""
+        if not upload:
+            return
+        weights = {k: v.to(torch.bfloat16) if v.is_floating_point() else v for k, v in model.state_dict().items()}
+        tmp = out / f"{name}.upload.{key}"
+        torch.save({"name": args.title, "cfg": {**cfg, "rope_base": model.c.rope_base}, "model": weights, "updates": step,
+                    "pieces": step * args.per_update, "curve": curve}, tmp)
+        upload.put(tmp, key, remove=True)
+
     def save(path, final=False):
         if not lead:
             return 0.0
@@ -396,6 +464,7 @@ def run(rank, world, args, device, stop, lr, name, fresh):
         if path == ckpt and ckpt.exists():   # keep the last 2 regular saves
             os.replace(ckpt, prev)
         os.replace(tmp, path)
+        model_copy("latest.pt")
         return time.time() - t0
 
     if lead:
@@ -413,8 +482,10 @@ def run(rank, world, args, device, stop, lr, name, fresh):
         if flag.item() > 0:
             seconds = save(ckpt)
             pause.unlink(missing_ok=True) if lead else None
+            uploaded = upload.wait(30) if upload else None   # inside Nebius's 60 seconds, after the save
             log({"time": time.strftime("%H:%M:%S"), "event": "stopped and saved", "update": step,
-                 "save_seconds": round(seconds, 1), "signal": [signal.Signals(s).name for s in stop]})
+                 "save_seconds": round(seconds, 1), "signal": [signal.Signals(s).name for s in stop],
+                 **({"copied_to_storage": uploaded} if upload else {})})
             return None
         seg = plan.segment(step)
         if model.c.rope_base != seg["base"]:
@@ -468,6 +539,10 @@ def run(rank, world, args, device, stop, lr, name, fresh):
                 short = {n: a for n, a in ahead.items() if a < args.warn_ahead}
                 if short:
                     record["warning"] = f"text preparation is close to the reading for {short}: tell the owner"
+            if upload:
+                record["in_storage"] = upload.done[-3:]
+                if upload.errors:
+                    record["warning"] = f"copying to Nebius storage failed: {upload.errors[-1]}: tell the owner"
             if reader.behind or reader.substituted:
                 record["windows_repeated_because_preparation_is_behind"] = reader.behind
                 record["windows_from_another_source"] = reader.substituted
@@ -490,6 +565,7 @@ def run(rank, world, args, device, stop, lr, name, fresh):
             mark_time = time.time()   # score time is not training speed
         if step in plan.copies:
             seconds = save(out / f"{name}.{billions(step, args)}B.ckpt")
+            model_copy(f"{billions(step, args)}B.pt")
             log({"time": time.strftime("%H:%M:%S"), "event": "milestone copy", "update": step, "save_seconds": round(seconds, 1)})
             last_save = mark_time = time.time()
         elif time.time() - last_save > args.save_minutes * 60:
@@ -500,8 +576,10 @@ def run(rank, world, args, device, stop, lr, name, fresh):
     if step < updates:   # the test run's stop
         began = time.time()
         seconds = save(ckpt)
+        if upload:
+            upload.wait(600)
         log({"time": time.strftime("%H:%M:%S"), "event": "stopped after the requested updates and saved", "update": step,
-             "save_seconds": round(seconds, 1)})
+             "save_seconds": round(seconds, 1), **({"in_storage": upload.done, "storage_errors": upload.errors} if upload else {})})
         return curve[-1][1] if curve else None
     if lead:
         weights = {k: v.to(torch.bfloat16) if v.is_floating_point() else v for k, v in model.state_dict().items()}
@@ -511,7 +589,12 @@ def run(rank, world, args, device, stop, lr, name, fresh):
         tok = Path(args.data) / "tokenizer.json"
         if tok.exists():
             (out / f"{name}.tokenizer.json").write_bytes(tok.read_bytes())
+        if upload:   # the final model again, and the full save for any later training
+            upload.put(out / f"{name}.pt", f"{name}.pt")
+            upload.put(out / f"{name}.{billions(step, args)}B.ckpt", f"{name}.{billions(step, args)}B.ckpt")
+            upload.wait(3600)
         log({"time": time.strftime("%H:%M:%S"), "event": "done", "updates": step, "hours": round(spent / 3600, 2),
+             **({"in_storage": upload.done, "storage_errors": upload.errors} if upload else {}),
              "saved": f"{name}.pt (16-bit weights) and the full copy {name}.{billions(step, args)}B.ckpt"})
     return curve[-1][1] if curve else None
 
@@ -641,6 +724,10 @@ def main():
     p.add_argument("--updates-limit", type=int, default=0, help="stop (and save) at this update number")
     p.add_argument("--price-per-hour", type=float, default=24.0, help="for the cost in the log (8 GPUs at about $3)")
     p.add_argument("--title", default="SlingerGPT 492M")
+    p.add_argument("--bucket", default="", help="Nebius storage bucket for model copies (nebius_ctl.py create-bucket)")
+    p.add_argument("--bucket-keys", default=str(Path.home() / ".nebius" / "slingergpt_storage_key.json"))
+    p.add_argument("--bucket-region", default=os.environ.get("NEBIUS_REGION", "us-central1"))
+    p.add_argument("--bucket-endpoint", default="", help="test only: another S3 address")
     p.add_argument("--seed", type=int, default=1337)
     p.add_argument("--lines", type=int, default=10)
     p.add_argument("--allow-plan-change", action="store_true", help="carry on although the shares changed")

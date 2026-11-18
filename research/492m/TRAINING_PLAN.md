@@ -399,21 +399,26 @@ processes in about 1 second, and the run resumes to the end.
   practice in the training text. Chats with canned refusals are KEPT (the owner dropped that filter).
 - 18 November, decision 3: spot price limit at the day's price (B200 $3.00, H200 $2.20 per GPU-hour); total budget
   $350. What to do when the server is taken back: being discussed with the owner.
+- 18 November, decision 5 (where the model goes): Nebius storage (Object Storage, a bucket in the owner's project), so
+  the model can be downloaded with no server running. `train_492m.py --bucket` copies a 16-bit model there after every
+  save (latest.pt, every 15 minutes and on the 60-second warning), at each milestone (25B.pt ... 80B.pt), and at the
+  end the final model and the full save. `nebius_ctl.py download` fetches the newest copy.
 
 ### The rental day, command by command
 
 From the cloud sandbox (each costing step only after the owner's yes, with the price):
 1. `python research/nebius_ctl.py prices` and `check` (free).
 2. `python research/nebius_ctl.py price --gpu b200 --max <owner's limit> --yes` (the spot price limit; free itself).
-3. `python research/nebius_ctl.py create-disk --yes` (1 TB network SSD).
+3. `python research/nebius_ctl.py create-disk --yes` (1 TB network SSD) and `create-bucket --yes` (the storage for
+   model copies, and its access key, saved in the sandbox at ~/.nebius/, never printed).
 4. `python research/nebius_ctl.py create-server --gpu b200 --yes`, then `status` until it is running, then `ssh`.
-5. Copy the code: `git clone -b ccr-5dd2ad80-fvffsq https://github.com/Insomniac-Coder/SlingerGPT /data/code` on the
+5. `python research/nebius_ctl.py send-keys` (the storage key to the server). Copy the code: `git clone -b ccr-5dd2ad80-fvffsq https://github.com/Insomniac-Coder/SlingerGPT /data/code` on the
    server (the repository is public), or `scp -r` from the sandbox.
 
 On the server (`ssh` from step 4), in `/data/code`:
 6. `python3 -m venv /data/venv && . /data/venv/bin/activate && pip install torch --index-url
    https://download.pytorch.org/whl/cu128 && pip install torchao tokenizers numpy pyarrow huggingface_hub hf_xet
-   fasttext zstandard` (CUDA 12.8 or newer for Blackwell; the same works on H200).
+   fasttext zstandard boto3` (CUDA 12.8 or newer for Blackwell; the same works on H200).
 7. `python research/test_train_492m.py gpu` (one minute: 8-bit build, flex mask = written-out mask, fused loss,
    attention speeds).
 8. In tmux: `python research/prepare_492m.py run --data /data/492m --workers 140 --approved` (110 workers on the
@@ -422,7 +427,8 @@ On the server (`ssh` from step 4), in `/data/code`:
    --stop-after 300`, trying `--attention cudnn|flash` and `--micro-pieces 32768|65536|131072`; then `kill -TERM`
    one run and read its save time in the log; then `python research/train_492m.py ratecheck --gpus 8 --data
    /data/492m`. Stop and tell the owner if the measured speed means more than 9 hours (B200).
-10. The run, in tmux: `python research/train_492m.py train --gpus 8 --data /data/492m --lr <chosen>`. Every 30
+10. The run, in tmux: `python research/train_492m.py train --gpus 8 --data /data/492m --lr <chosen> --bucket
+    <the bucket name create-bucket printed>`. Every 30
     minutes: `python research/train_492m.py status --data /data/492m`, `prepare_492m.py status`, and a short plain
     update to the owner (progress, speed, held-out score, money so far, text ready ahead).
 
