@@ -814,10 +814,10 @@ def chat_ok(turns):
     return None
 
 
-def boilerplate(adapter, f, work, limit):
+def boilerplate(source_rows):
     """Lines repeated across many documents of this file (menus, cookie notices): counted first, removed later."""
     counts, docs = collections.Counter(), 0
-    for row in rows(adapter, f, work, limit):
+    for row in source_rows:
         text = row.get("text") or ""
         docs += 1
         counts.update({zlib.crc32(l.strip().encode()) for l in text.split("\n") if 10 <= len(l.strip()) <= 200})
@@ -835,10 +835,13 @@ def clean_file(task):
     Rules.load(work)
     repo, _, _, _, make, kind, near, lid = ADAPTERS[adapter]
     make = make or docs_web
-    common = boilerplate(adapter, f, work, limit) if kind in ("web", "pdf", "book") else set()
+    # a sample (limit) is read once and kept in memory; a whole downloaded file is read twice from the local disk
+    every = list(rows(adapter, f, work, limit)) if limit else None
+    source_rows = (lambda: every) if limit else (lambda: rows(adapter, f, work, limit))
+    common = boilerplate(source_rows()) if kind in ("web", "pdf", "book") else set()
     kept, why, began = [], collections.Counter(), time.time()
     group = collections.OrderedDict()   # documents of one book (doab sections) joined for the long phase
-    for row in rows(adapter, f, work, limit):
+    for row in source_rows():
         for item in make(row):
             text, outs, id_, url = item[:4]
             extra = item[4] if len(item) > 4 else {}
@@ -1380,7 +1383,7 @@ def tokenizer_here(data, work, sample_mb, workers, log):
             if o in TOKENIZER_SAMPLE:
                 feeding[o].append(a)
     adapters = sorted({a for v in feeding.values() for a in v})
-    nfiles = {a: (24 if a == "stack_edu" else 3) for a in adapters}   # Stack-Edu's files are one language each
+    nfiles = {a: (24 if a == "stack_edu" else 2) for a in adapters}   # Stack-Edu's files are one language each
     files = {a: list_files(a)[:nfiles[a]] for a in adapters}
     total = sum(TOKENIZER_SAMPLE.values())
     want = {o: sample_mb * 1e6 * v / total for o, v in TOKENIZER_SAMPLE.items()}
@@ -1394,12 +1397,12 @@ def tokenizer_here(data, work, sample_mb, workers, log):
         return sorted((work / "clean" / f"r{rnd}").glob("*/*.parquet"))
     log(f"word-piece list: measuring {len(adapters)} sources")
     rate = collections.defaultdict(float)   # letters of cleaned text per row read, per (adapter, output)
-    for shard in clean_all(90, {a: 1000 for a in adapters}):
+    for shard in clean_all(90, {a: 500 for a in adapters}):
         a = shard.parent.name
         t = pq.read_table(shard, columns=["text", "outs"])
         for text, outs in zip(t["text"].to_pylist(), t["outs"].to_pylist()):
             for o in outs:
-                rate[(a, o)] += len(text.encode()) / (1000 * len(files[a]))
+                rate[(a, o)] += len(text.encode()) / (500 * len(files[a]))
     limits = {}
     for o, adapters_of in feeding.items():
         per_row = sum(rate[(a, o)] for a in adapters_of)
