@@ -394,7 +394,9 @@ processes in about 1 second, and the run resumes to the end.
   the run (the difference to FineWiki), so it is read at most about 4 times.
 - 18 November, decision 2 (chat layout): plain "System:/User:/Assistant:" lines, as the pico and the chat page; 16
   special pieces reserved in the word-piece list (prepare_492m.SPECIAL) for later use.
-- 18 November, the chat behaviour filters: the owner wants some changed (which ones: asked).
+- 18 November, the chat behaviour filters: approved except one. Chats are removed when the assistant names itself as
+  another AI or its maker, only says "I don't know", claims a knowledge cut-off, or calls functions; no passage-reading
+  practice in the training text. Chats with canned refusals are KEPT (the owner dropped that filter).
 
 ### The rental day, command by command
 

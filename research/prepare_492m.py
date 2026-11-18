@@ -36,8 +36,9 @@ ROUNDS, FIRST_ROUND = 6, 0.05
 LONG_CHARS, CHUNK_CHARS = 32_000, 64_000   # a long document is 8k+ pieces (~4 letters each); long-phase chunks <= ~16k
 LID_URL = "https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin"
 CHAT_LAYOUT = "plain"   # decision 2: "plain" = the pico's System:/User:/Assistant: lines; "markers" = reserved pieces
-BEHAVIOUR = {           # data_mix.md "Conversation" filters: they teach behaviour, so they wait for the owner's yes
-    "drop_other_assistant_names": True, "drop_canned_refusals": True, "drop_only_i_dont_know": True,
+BEHAVIOUR = {           # data_mix.md "Conversation" filters, as the owner approved them on 18 November 2026
+    "drop_other_assistant_names": True, "drop_canned_refusals": False,   # owner: keep chats with refusals
+    "drop_only_i_dont_know": True,
     "drop_knowledge_cutoff": True, "drop_function_calls": True,
 }
 WORDS = re.compile(r"[a-z0-9]+")
