@@ -398,7 +398,8 @@ processes in about 1 second, and the run resumes to the end.
   another AI or its maker, only says "I don't know", claims a knowledge cut-off, or calls functions; no passage-reading
   practice in the training text. Chats with canned refusals are KEPT (the owner dropped that filter).
 - 18 November, decision 3: spot price limit at the day's price (B200 $3.00, H200 $2.20 per GPU-hour); total budget
-  $350. What to do when the server is taken back: being discussed with the owner.
+  $350. When Nebius takes the server back: WAIT for the owner's yes before starting it again (owner: "Wait for me").
+  The training saves first; nothing is lost while waiting.
 - 18 November, decision 5 (where the model goes): Nebius storage (Object Storage, a bucket in the owner's project), so
   the model can be downloaded with no server running. `train_492m.py --bucket` copies a 16-bit model there after every
   save (latest.pt, every 15 minutes and on the 60-second warning), at each milestone (25B.pt ... 80B.pt), and at the
