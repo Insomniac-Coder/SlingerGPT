@@ -114,14 +114,29 @@ class GPT2(Model):
 
 
 def held_out():
-    """Held-out documents of every source, about TEXT_LETTERS in the shares the training read them."""
+    """Held-out documents of every source, about TEXT_LETTERS in the shares the training read them.
+    SLINGER_HELD_OUT=<dir> (environment): the 492M's held-out text instead (prepare_492m.py's output), weighted by
+    each source's share of the whole run (research/492m/mix_492m.json). Wrongness is per letter, so any model with
+    any word-piece list is scored on the same text."""
+    import os
     import numpy as np
     from tokenizers import Tokenizer
-    tok = Tokenizer.from_file(str(ROOT / "data" / "slinger" / "tokenizer.json"))
-    share = json.loads((ROOT / "data" / "slinger" / "manifest.json").read_text(encoding="utf-8"))["share"]
+    data = Path(os.environ.get("SLINGER_HELD_OUT") or ROOT / "data" / "slinger")
+    tok = Tokenizer.from_file(str(data / "tokenizer.json"))
+    manifest = json.loads((data / "manifest.json").read_text(encoding="utf-8"))
+    if "share" in manifest:   # SlingerGPT 1 pico's text
+        share = manifest["share"]
+    else:                     # the 492M's text: the run's overall share of each source that has held-out text
+        mix = json.loads((HERE / "492m" / "mix_492m.json").read_text(encoding="utf-8"))
+        share = {}
+        for phase, shares in mix["phases"].items():
+            for k, v in shares.items():
+                share[k] = share.get(k, 0.0) + mix["billions"][phase] * v / 100
+        share = {k: v / sum(share.values()) for k, v in share.items()
+                 if manifest["sources"].get(k, {}).get("val", {}).get("pieces")}
     out = {}
     for name, s in share.items():
-        ids = np.memmap(ROOT / "data" / "slinger" / name / "val.bin", dtype=np.uint16, mode="r")[:3_000_000].tolist()
+        ids = np.memmap(data / name / "val.bin", dtype=np.uint16, mode="r")[:3_000_000].tolist()
         docs, cur, got = [], [], 0
         for i in ids:
             if i == 0:

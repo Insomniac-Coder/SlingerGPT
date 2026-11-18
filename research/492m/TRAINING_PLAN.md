@@ -256,7 +256,7 @@ there.
 1. With the owner's yes, create the data disk and the server. Copy the code to it (`scp` from the sandbox, or
    `git clone` if the branch was pushed with the owner's yes).
 2. Install PyTorch (CUDA 12.8 or newer, with Blackwell support), torchao, tokenizers, numpy, pyarrow, datasets,
-   huggingface_hub with hf_transfer, and datatrove or similar for deduplication. Check `nvidia-smi` shows 8 B200s
+   huggingface_hub (its Xet downloader, HF_XET_HIGH_PERFORMANCE=1; hf_transfer is no longer used), and datatrove or similar for deduplication. Check `nvidia-smi` shows 8 B200s
    linked by NVLink.
 3. Start `prepare_492m.py` in `tmux` (so it keeps running if the session disconnects). Build the word-piece list,
    then round 1.

@@ -12,6 +12,7 @@ import torch.utils.checkpoint
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.attention import SDPBackend, sdpa_kernel
+from torch.nn.attention.flex_attention import create_block_mask, flex_attention
 
 # This Windows PyTorch build has no flash attention; cuDNN's is 1.6x faster than the default memory-efficient
 # kernel on this GPU with identical results (attn_bench.py). The others stay as fallbacks, in this order.
@@ -26,6 +27,7 @@ class Cfg:
     ffn: int = 2048            # SwiGLU hidden size (modern); the GPT-2 block uses 4 x width
     vocab: int = 50304
     context: int = 1024
+    rope_base: float = 10000.0  # rotary base; set_rope_base() changes it mid-run (the 492M's 16,384 phase uses 1,000,000)
     modern: bool = True
     rope: bool = None           # the four parts of `modern`, switchable one at a time (None = follow `modern`)
     qknorm: bool = None
@@ -115,7 +117,7 @@ class Block(nn.Module):
         if c.skips:
             self.a, self.b = nn.Parameter(torch.zeros(())), nn.Parameter(torch.tensor(0.5))
 
-    def forward(self, x, cos, sin, x0=None, v0=None):
+    def forward(self, x, cos, sin, x0=None, v0=None, mask=None):
         b, t, w = x.shape
         if x0 is not None:
             x = x + self.a * x0
@@ -126,8 +128,13 @@ class Block(nn.Module):
             q, k = self.qn(q), self.kn(k)
         if self.c.rope:
             q, k = rope(q, cos, sin), rope(k, cos, sin)
-        with sdpa_kernel(ATTENTION, set_priority=True):
-            a = F.scaled_dot_product_attention(q, k, v, is_causal=True)
+        if isinstance(mask, torch.Tensor):   # the same mask written out in full (the CPU, which flex cannot train on)
+            a = F.scaled_dot_product_attention(q, k, v, attn_mask=mask)
+        elif mask is not None:   # a flex-attention block mask: causal and within one document only
+            a = flex_attention(q, k, v, block_mask=mask)
+        else:
+            with sdpa_kernel(ATTENTION, set_priority=True):
+                a = F.scaled_dot_product_attention(q, k, v, is_causal=True)
         x = x + self.o(a.transpose(1, 2).reshape(b, t, w))
         h = self.up(self.n2(x))
         if self.gated:
@@ -204,23 +211,33 @@ class GPT(nn.Module):
             nn.init.zeros_(self.probe.weight) if c.gate_mode == "probe" else nn.init.normal_(self.probe.weight, std=0.02)
             nn.init.constant_(self.probe.bias, 0.0 if c.gate_mode == "probe" else 1.0)
             self.register_buffer("cut", torch.tensor(float("nan")))   # the predicted loss above which a token passes
-        hd = c.width // c.heads
-        freq = 1.0 / 10000 ** (torch.arange(0, hd, 2) / hd)
-        ang = torch.outer(torch.arange(c.context), freq)
-        self.register_buffer("cos", ang.cos(), persistent=False)
-        self.register_buffer("sin", ang.sin(), persistent=False)
+        self.register_buffer("cos", torch.empty(0), persistent=False)
+        self.register_buffer("sin", torch.empty(0), persistent=False)
+        self.set_rope_base(c.rope_base)
+
+    def set_rope_base(self, base):
+        """(Re)builds the rotary tables for `base`, on the model's own device. Raising the base mid-run (Qwen-style ABF)
+        stretches the slowest angles so that longer windows stay readable."""
+        self.c.rope_base = float(base)
+        hd = self.c.width // self.c.heads
+        device = self.tokens.weight.device
+        freq = 1.0 / float(base) ** (torch.arange(0, hd, 2, device=device if device.type != "meta" else "cpu") / hd)
+        ang = torch.outer(torch.arange(self.c.context, device=freq.device), freq)
+        self.cos, self.sin = ang.cos().to(device), ang.sin().to(device)
 
     def forward(self, idx):
-        with torch.autocast("cuda", dtype=torch.bfloat16):
+        with torch.autocast(idx.device.type, dtype=torch.bfloat16):
             return self.out(self.features(idx))
 
-    def features(self, idx, patch=1):
+    def features(self, idx, patch=1, mask=None):
         """The final normalised hidden state (BF16), before the output layer; training feeds it to fused_ce.
         patch > 1 (patch-level training, arXiv 2407.12665): every `patch` tokens are averaged into one position,
-        so the result has one row per patch; the lookup memory is skipped, as it is keyed on single tokens."""
+        so the result has one row per patch; the lookup memory is skipped, as it is keyed on single tokens.
+        mask: a flex-attention block mask (document_mask below), so no position attends across a document boundary."""
         b, t = idx.shape
         k, last = self.c.hourglass, len(self.blocks) - 1
-        with torch.autocast("cuda", dtype=torch.bfloat16):
+        assert mask is None or not (k or self.c.gate or self.c.skips or patch > 1), "the document mask needs the plain path"
+        with torch.autocast(idx.device.type, dtype=torch.bfloat16):
             x = self.tokens(idx)
             if patch > 1:
                 t //= patch
@@ -248,8 +265,23 @@ class GPT(nn.Module):
                 elif self.recompute and self.training:   # store less for the backward pass, recompute it there
                     x = torch.utils.checkpoint.checkpoint(block, x, cos, sin, use_reentrant=False)
                 else:
-                    x = block(x, cos, sin)
+                    x = block(x, cos, sin, mask=mask)
             return self.norm(x).to(torch.bfloat16)
+
+
+def document_mask(idx, eot=0, dense=None, **kw):
+    """A flex-attention block mask for windows that hold several documents: causal, and each position sees only
+    its own document. A document starts after each end-of-text piece (`eot`); the end-of-text piece itself still
+    belongs to the document it closes. dense (default: on the CPU): the same mask as a full (b, 1, t, t) table."""
+    b, t = idx.shape
+    doc = torch.cumsum((idx == eot).int(), dim=1) - (idx == eot).int()   # end-of-text closes its own document
+    if dense or (dense is None and idx.device.type == "cpu"):
+        causal = torch.ones(t, t, dtype=torch.bool, device=idx.device).tril()
+        return (causal & (doc[:, :, None] == doc[:, None, :]))[:, None]
+
+    def same_doc_causal(bi, h, q, kv):
+        return (q >= kv) & (doc[bi, q] == doc[bi, kv])
+    return create_block_mask(same_doc_causal, B=b, H=None, Q_LEN=t, KV_LEN=t, device=idx.device, **kw)
 
 
 def middle_on_chosen(self, x, cos, sin):
@@ -368,12 +400,12 @@ CONFIGS = {
 }
 
 
-def build(size, **kw):
+def build(size, device="cuda", **kw):
     c = Cfg(**{**CONFIGS[size], **kw})   # kw may override the size's own numbers (e.g. layers)
     if not c.swiglu or c.relu2:
         c.ffn = 4 * c.width
     c.ffn = int(c.ffn * c.ffn_scale)
-    model = GPT(c).cuda()
+    model = GPT(c).to(device)
     if c.fp8:   # only the block layers: the piece table, the output layer and the lookup memory stay in 16-bit
         from torchao.float8 import convert_to_float8_training
         convert_to_float8_training(model, module_filter_fn=lambda m, name: name.startswith("blocks.") and isinstance(m, nn.Linear))
