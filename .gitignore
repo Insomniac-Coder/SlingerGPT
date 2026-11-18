@@ -1,0 +1,5 @@
+# Training text and trained models: too big for Git. Models are on the Releases page; the text is rebuilt by the scripts.
+data/
+models/
+__pycache__/
+chat_password.txt
