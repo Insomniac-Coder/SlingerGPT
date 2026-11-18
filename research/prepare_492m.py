@@ -763,6 +763,23 @@ def prose_ok(text, kind):
     return None
 
 
+TABLE_RULE = re.compile(r"^\|[\s\-:|]+\|\s*$")
+
+
+def layout_fix(text, kind):
+    """Padding that only lines things up: Wikipedia's tables (cells padded to one width, rules of dashes) become
+    single-spaced, and in any prose a run of 32+ spaces or 16+ identical marks is cut short. Code keeps its spacing."""
+    if kind == "wiki":
+        lines = []
+        for line in text.split("\n"):
+            if line.startswith("|"):
+                line = re.sub(r"-{3,}", "---", line) if TABLE_RULE.match(line) else re.sub(r" {2,}", " ", line)
+            lines.append(line)
+        text = "\n".join(lines)
+    text = re.sub(r" {32,}", " ", text)
+    return re.sub(r"([-=_*~.#+])\1{15,}", lambda m: m.group(1) * 8, text)
+
+
 def pdf_fix(text):
     text = re.sub(r"(\w)-\n(\w)", r"\1\2", text)   # hyphenated line breaks
     lines = text.split("\n")
@@ -856,6 +873,8 @@ def clean_file(task):
             text = normal(text or "")
             if common:
                 text = "\n".join(l for l in text.split("\n") if zlib.crc32(l.strip().encode()) not in common).strip()
+            if kind in ("web", "pdf", "book", "paper", "wiki", "synthetic"):
+                text = layout_fix(text, kind)
             if kind == "pdf":
                 text = pdf_fix(text)
                 if sum(c.isalpha() for c in text) < 0.7 * max(1, sum(not c.isspace() for c in text)):
