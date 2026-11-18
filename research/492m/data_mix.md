@@ -2,6 +2,8 @@
 
 Written by a research workflow on 18 November 2026 (5 researchers, 1 writer). Nothing has been downloaded.
 
+> **Changed 18 November (owner):** the main phase now starts with short windows: pieces 0-25B at 1,024, 25-50B at 2,048, 50-78B at 4,096 (anneal included), 78-80B at 16,384. Sources and shares are unchanged.
+
 ## In plain words
 
 1. The 80 billion pieces come from about 30 public datasets. Roughly 40% is good educational web pages, 9% textbook-style writing, 12% code (Python first) and 6% explanations of computers (Stack Overflow-style answers, manuals, open textbooks, and web pages picked out by their topic labels). The rest is about 9.5% maths, 7% Wikipedia, 5% books, 5% questions and answers, 3% science papers and 3% chats.

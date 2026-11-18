@@ -8,6 +8,7 @@ Plans for the next, larger SlingerGPT. Nothing here has been trained yet, and th
 
 | File | What it is |
 |---|---|
+| `TRAINING_PLAN.md` | **Start here:** the step-by-step plan for training it, written so a fresh session can pick it up |
 | `data_mix.md` | The 80-billion-piece training mix: 31 sources, shares, repeats, licences, cleaning, the three phases |
 | `finetune_plan.md` | The chat fine-tune plan, built on the lessons from SlingerGPT 1 pico, with draft behaviour rules |
 | `research_and_plans.json` | The raw research behind both: every candidate dataset with its size and licence |
