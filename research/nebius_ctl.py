@@ -3,7 +3,7 @@
     python research/nebius_ctl.py check                      sign-in, GPU quotas, B200 platform and presets (free)
     python research/nebius_ctl.py status                     what exists now, and its state (free)
     python research/nebius_ctl.py price --max 3.000 --yes    the most to pay per GPU-hour for spot (a pricing policy)
-    python research/nebius_ctl.py create-disk --gb 2000 --yes      the data disk (network SSD; about $4-5 a day)
+    python research/nebius_ctl.py create-disk --yes          the 1 TB data disk (network SSD; owner, 18 November)
     python research/nebius_ctl.py create-server --yes        8x B200 spot server, data disk attached at /data
     python research/nebius_ctl.py stop --yes | start --yes | delete-server --yes | delete-disk --yes
     python research/nebius_ctl.py ssh                        the command to log in
@@ -230,7 +230,7 @@ async def power(s, project, args, on):
         sys.exit(f"{NAME} does not exist")
     op = await (svc.start(StartInstanceRequest(id=i.metadata.id)) if on else svc.stop(StopInstanceRequest(id=i.metadata.id)))
     await op.wait()
-    print(f"{NAME} {'started' if on else 'stopped (the data disk keeps everything; it still costs about $4-5 a day)'}")
+    print(f"{NAME} {'started' if on else 'stopped (the data disk keeps everything; it still costs money each day)'}")
 
 
 async def delete(s, project, args, what):
@@ -267,7 +267,7 @@ async def main():
     p.add_argument("what", choices=["check", "status", "price", "create-disk", "create-server", "start", "stop",
                                     "delete-server", "delete-disk", "ssh"])
     p.add_argument("--yes", action="store_true", help="the owner said yes to what this costs")
-    p.add_argument("--gb", type=int, default=2000)
+    p.add_argument("--gb", type=int, default=1000, help="data disk size (owner: 1 TB is enough)")
     p.add_argument("--max", type=float, default=3.0, help="price: the most to pay per GPU-hour, in US dollars")
     args = p.parse_args()
     project = credentials()

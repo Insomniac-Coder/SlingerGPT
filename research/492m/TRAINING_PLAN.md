@@ -233,7 +233,7 @@ there.
      temporary file, renames it into place, and all processes stop together.
    - Saving must finish well inside 60 seconds: measure it.
 5. **`research/nebius_ctl.py`**, using the Nebius Python SDK (`pip install nebius`, in the cloud sandbox only):
-   - create the data disk: a network SSD of about 2 TB that survives the server being taken back, about $4-5 a day;
+   - create the data disk: a 1 TB network SSD (owner, 18 November) that survives the server being taken back;
    - create the 8x B200 spot server with the data disk attached, an Ubuntu image with the NVIDIA driver and CUDA, the
      owner's maximum spot price and a new SSH key made in the sandbox;
    - status, start, stop, delete.
@@ -283,7 +283,7 @@ there.
    `finetune_plan.md`.
 9. **Shut down:**
    - Stop and delete the server.
-   - Ask the owner whether to delete the data disk (about $4-5 a day to keep).
+   - Ask the owner whether to delete the data disk (it costs money every day it is kept).
    - Report the total time, the cost, and where everything is.
 
 ---
