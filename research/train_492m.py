@@ -3,6 +3,10 @@
     python research/train_492m.py train --gpus 8                  start, or carry on from the last save
     python research/train_492m.py train --gpus 8 --stop-after 300 the test run: speed, memory, then save and stop
     python research/train_492m.py ratecheck --gpus 8              200 updates at each of 0.0015, 0.002 and 0.003
+    python research/train_492m.py bench --gpus 8                  the 5-minute speed check: about a minute at each
+                                                                  window length, then the whole run's hours and cost
+    python research/train_492m.py scaling --gpus 8                the same check (window 4,096) on 1, 2, 4 and 8 GPUs
+       (both take --made-up-text to run before the prepared text is ready)
     python research/train_492m.py pause                           save and stop within one update
     python research/train_492m.py status                          the last lines of the log
 
@@ -358,7 +362,9 @@ def worker(rank, world, args):
     for sig in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
         signal.signal(sig, lambda n, f: stop.append(n))
     try:
-        if args.what == "ratecheck":
+        if args.what == "bench":
+            bench(rank, world, args, device, stop)
+        elif args.what == "ratecheck":
             results = {}
             for lr in [float(r) for r in args.rates.split(",")]:
                 results[lr] = run(rank, world, args, device, stop, lr=lr, name=f"{args.name}_rate{lr}", fresh=True)
@@ -373,6 +379,156 @@ def worker(rank, world, args):
             dist.destroy_process_group()
 
 
+def build_model(args, device, plan, vocab, lr):
+    """The model (the same starting weights on every GPU) and its two optimisers."""
+    cfg = {**CFG, "vocab": vocab, "fp8": args.fp8}
+    if args.size != "492m":   # small models for the CPU tests
+        cfg = {**cfg, "size": args.size, "engram_slots": 1021, "engram_hashes": 2, "engram_dim": 16}
+    cfg["context"] = max(s["window"] for s in plan.segments)
+    torch.manual_seed(args.seed)   # DDP also copies GPU 0's weights to the others
+    model = arch.build(device=device, **cfg)
+    count = sum(p.numel() for p in model.parameters())
+    if args.size == "492m":
+        assert count == WEIGHTS, f"the model has {count:,} weights, not {WEIGHTS:,}"
+    opts = arch.optimizers(model, "muon", lr)
+    if device.type == "cpu":   # the fused AdamW of the GPU build does not run on the CPU: plain AdamW there
+        for o in opts:
+            if isinstance(o, torch.optim.AdamW):
+                o.defaults["fused"] = False
+                for g in o.param_groups:
+                    g["fused"] = False
+    return model, opts, cfg, count
+
+
+def wrap(model, args, device):
+    """The compiled body and the loss in one module, under DistributedDataParallel when there are several GPUs."""
+    body = torch.compile(model.features) if args.compile else model.features
+    net = Loss(model, body, args.fused_ce).to(device)
+    if dist.is_initialized():
+        net = nn.parallel.DistributedDataParallel(net, device_ids=[device.index] if device.type == "cuda" else None,
+                                                  broadcast_buffers=False, bucket_cap_mb=args.bucket_mb,
+                                                  gradient_as_bucket_view=True)
+    return net
+
+
+def one_update(net, model, opts, batches, masked, device):
+    """One weight update over this GPU's slices (the gradients are summed across GPUs on the last slice)."""
+    total = 0.0
+    for i, rows in enumerate(batches):
+        rows = rows.to(device, non_blocking=True)
+        x, y = rows[:, :-1], rows[:, 1:]
+        mask = arch.document_mask(x, _compile=x.is_cuda) if masked else None
+        sync = i == len(batches) - 1 or not isinstance(net, nn.parallel.DistributedDataParallel)
+        with (contextlib.nullcontext() if sync else net.no_sync()):
+            loss = net(x, y, mask) / len(batches)
+            loss.backward()
+        total += loss.detach()
+    norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+    for o in opts:
+        o.step()
+        o.zero_grad(set_to_none=True)
+    return total, norm
+
+
+class MadeUpText:
+    """Random windows in the shape the reader makes, for speed checks before the real text is ready."""
+    def __init__(self, plan, rank, world, micro_pieces, start, device, vocab):
+        self.plan, self.world, self.micro_pieces, self.update, self.device, self.vocab = plan, world, micro_pieces, start, device, vocab
+        self.rng = torch.Generator().manual_seed(rank)
+
+    def next(self):
+        seg = self.plan.segment(self.update)
+        n, w = seg["slots"] // self.world, seg["window"]
+        rows = torch.randint(1, self.vocab, (n, w + 1), generator=self.rng)
+        rows[:, torch.randint(0, w, (max(1, w // 3000),), generator=self.rng)] = 0   # a few document ends
+        micro = max(1, min(n, self.micro_pieces // w))
+        batches = [r.pin_memory() if self.device.type == "cuda" else r for r in rows.split(micro)]
+        self.update += 1
+        return self.update - 1, batches
+
+
+def bench(rank, world, args, device, stop):
+    """Training speed at each window length of the schedule (a minute or so each, nothing saved), and from it the
+    hours and cost of the whole run. --made-up-text: random pieces, so it can run before the real text is ready."""
+    mix = json.loads(Path(args.mix).read_text(encoding="utf-8"))
+    windows = [int(w) for w in args.windows.split(",")] if args.windows else None
+    plan = Plan(mix, args.total_pieces, args.per_update, windows, seed=args.seed)
+    streams = None if args.made_up_text else Streams(args.data)
+    vocab = 16384 if args.made_up_text else int(streams.manifest["pieces in the list"])
+    model, opts, cfg, count = build_model(args, device, plan, vocab, 0.0005)
+    net = wrap(model, args, device)
+    cuda = device.type == "cuda"
+    picked = [plan.segments[int(i)] for i in args.segments.split(",")]
+    speed = {}
+    for seg in picked:
+        model.set_rope_base(seg["base"])
+        src = MadeUpText(plan, rank, world, args.micro_pieces, seg["start"], device, vocab) if args.made_up_text else \
+            Reader(plan, streams, rank, world, args.micro_pieces, seg["start"], args.seed, device)
+        for _ in range(args.bench_warm):   # the first updates at a new length include compiling
+            one_update(net, model, opts, src.next()[1], seg["masked"], device)
+        if cuda:
+            torch.cuda.synchronize()
+            torch.cuda.reset_peak_memory_stats()
+        t0, n = time.time(), 0
+        while not stop:
+            one_update(net, model, opts, src.next()[1], seg["masked"], device)
+            n += 1
+            done = torch.tensor([float(time.time() - t0 >= args.bench_seconds)], device=device)
+            if dist.is_initialized():
+                dist.all_reduce(done, op=dist.ReduceOp.MAX)   # every GPU stops after the same update
+            if done.item() and n >= 2:
+                break
+        if cuda:
+            torch.cuda.synchronize()
+        seconds = time.time() - t0
+        key = (seg["window"], seg["masked"])
+        speed[key] = n * args.per_update / seconds
+        if rank == 0:
+            print(json.dumps({"window": seg["window"], "document_mask": seg["masked"], "updates": n,
+                              "seconds": round(seconds, 1), "pieces_per_s": round(speed[key]),
+                              "gpu_memory_GB": round(torch.cuda.max_memory_allocated() / 2**30, 1) if cuda else None}),
+                  flush=True)
+        if stop:
+            return
+    if rank == 0:
+        hours = 0.0
+        for s in plan.segments:   # a segment not measured takes the speed of a measured one with the same window
+            rate = speed.get((s["window"], s["masked"])) or next((v for (w, _), v in speed.items() if w == s["window"]), None)
+            if rate is None:
+                hours = None
+                break
+            hours += (s["stop"] - s["start"]) * args.per_update / rate / 3600
+        print(json.dumps({"bench": "done", "gpus": world, "speeds": {f"{w}{' masked' if m else ''}": round(v)
+                                                                      for (w, m), v in speed.items()},
+                          "whole_run_hours": round(hours, 2) if hours else None,
+                          "whole_run_cost_usd": round(hours * args.price_per_hour, 0) if hours else None}), flush=True)
+
+
+def scaling(args):
+    """The same speed check (window 4,096) on 1, 2, 4 and 8 GPUs: does doubling the GPUs double the speed?"""
+    rows = []
+    for g in [g for g in (1, 2, 4, 8) if g <= args.gpus]:
+        rest, skip = [], False   # this command's own options, without its --gpus
+        for a in sys.argv[2:]:
+            if skip:
+                skip = False
+            elif a == "--gpus":
+                skip = True
+            elif not a.startswith("--gpus="):
+                rest.append(a)
+        cmd = [sys.executable, str(Path(__file__)), "bench", "--gpus", str(g), "--segments", "2"] + rest
+        out = subprocess.run(cmd, capture_output=True, text=True)
+        lines = [json.loads(l) for l in out.stdout.splitlines() if l.startswith("{")]
+        done = [l for l in lines if l.get("bench") == "done"]
+        if out.returncode or not done:
+            print(f"{g} GPU(s): failed\n{out.stdout[-2000:]}{out.stderr[-2000:]}", flush=True)
+            return
+        rows.append((g, list(done[0]["speeds"].values())[0]))
+        one = rows[0][1]
+        print(f"{g} GPU(s): {rows[-1][1] / 1e6:.2f}M pieces/s, {rows[-1][1] / one:.2f}x one GPU "
+              f"({rows[-1][1] / one / g:.0%} of perfect scaling)", flush=True)
+
+
 def run(rank, world, args, device, stop, lr, name, fresh):
     args = argparse.Namespace(**{**vars(args), "name": name})
     out, ckpt, prev, logfile = paths(args)
@@ -384,23 +540,7 @@ def run(rank, world, args, device, stop, lr, name, fresh):
     windows = [int(w) for w in args.windows.split(",")] if args.windows else None
     plan = Plan(mix, args.total_pieces, args.per_update, windows, seed=args.seed)
     updates = plan.updates
-    vocab = int(streams.manifest["pieces in the list"])
-    cfg = {**CFG, "vocab": vocab, "fp8": args.fp8}
-    if args.size != "492m":   # small models for the CPU tests
-        cfg = {**cfg, "size": args.size, "engram_slots": 1021, "engram_hashes": 2, "engram_dim": 16}
-    cfg["context"] = max(s["window"] for s in plan.segments)
-    torch.manual_seed(args.seed)   # the same starting weights on every GPU (DDP also copies GPU 0's)
-    model = arch.build(device=device, **cfg)
-    count = sum(p.numel() for p in model.parameters())
-    if args.size == "492m":
-        assert count == WEIGHTS, f"the model has {count:,} weights, not {WEIGHTS:,}"
-    opts = arch.optimizers(model, "muon", lr)
-    if device.type == "cpu":   # the fused AdamW and Muon of the GPU build need no change; on the CPU, plain AdamW
-        for o in opts:
-            if isinstance(o, torch.optim.AdamW):
-                o.defaults["fused"] = False
-                for g in o.param_groups:
-                    g["fused"] = False
+    model, opts, cfg, count = build_model(args, device, plan, int(streams.manifest["pieces in the list"]), lr)
     warm = args.warm_updates or max(1, int(updates * args.warm))
     step, spent, curve = 0, 0.0, []
     if not fresh:
@@ -416,12 +556,7 @@ def run(rank, world, args, device, stop, lr, name, fresh):
             if lead:
                 print(f"carrying on from update {step:,} of {updates:,}", flush=True)
     model.set_rope_base(plan.segment(step)["base"])
-    body = torch.compile(model.features) if args.compile else model.features
-    net = Loss(model, body, args.fused_ce).to(device)
-    if dist.is_initialized():
-        net = nn.parallel.DistributedDataParallel(net, device_ids=[device.index] if device.type == "cuda" else None,
-                                                  broadcast_buffers=False, bucket_cap_mb=args.bucket_mb,
-                                                  gradient_as_bucket_view=True)
+    net = wrap(model, args, device)
     reader = Reader(plan, streams, rank, world, args.micro_pieces, step, args.seed, device)
     assert all(s["slots"] % world == 0 for s in plan.segments), "every update's windows must split evenly over the GPUs"
     val = held_out(streams, plan, device, min(VAL_WINDOW, plan.segments[0]["window"]))
@@ -501,20 +636,7 @@ def run(rank, world, args, device, stop, lr, name, fresh):
         if args.trace:   # tests: a fingerprint of the windows this GPU reads at each update
             with (out / f"{name}.windows.{rank}.txt").open("a") as f:
                 f.write(f"{step} {hashlib.sha1(b''.join(b.numpy().tobytes() for b in batches)).hexdigest()}\n")
-        total = 0.0
-        for i, rows in enumerate(batches):
-            rows = rows.to(device, non_blocking=True)
-            x, y = rows[:, :-1], rows[:, 1:]
-            mask = arch.document_mask(x, _compile=x.is_cuda) if seg["masked"] or args.doc_mask_all else None
-            sync = i == len(batches) - 1 or not isinstance(net, nn.parallel.DistributedDataParallel)
-            with (contextlib.nullcontext() if sync else net.no_sync()):
-                loss = net(x, y, mask) / len(batches)
-                loss.backward()
-            total += loss.detach()
-        norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        for o in opts:
-            o.step()
-            o.zero_grad(set_to_none=True)
+        total, norm = one_update(net, model, opts, batches, seg["masked"] or args.doc_mask_all, device)
         step += 1
         losses.append(total)
         if step % args.log_every == 0 or step == stop_after:
@@ -697,7 +819,7 @@ def launch(args):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("what", choices=["train", "ratecheck", "pause", "status"])
+    p.add_argument("what", choices=["train", "ratecheck", "bench", "scaling", "pause", "status"])
     p.add_argument("--name", default="slingergpt_492m")
     p.add_argument("--data", default="/data/492m", help="the prepared text (prepare_492m.py's output)")
     p.add_argument("--out", default="", help="saves and logs (default <data>/runs)")
@@ -738,6 +860,10 @@ def main():
     p.add_argument("--windows", default="", help="test only: the five window lengths, e.g. 32,64,128,128,256")
     p.add_argument("--threads", type=int, default=1)
     p.add_argument("--trace", action="store_true", help="test only: each GPU writes a fingerprint of its windows")
+    p.add_argument("--segments", default="0,1,2,4", help="bench: which schedule segments to time (0-4)")
+    p.add_argument("--bench-seconds", type=float, default=60, help="bench: timed seconds per segment")
+    p.add_argument("--bench-warm", type=int, default=5, help="bench: untimed updates first (compiling)")
+    p.add_argument("--made-up-text", action="store_true", help="bench: random pieces instead of the prepared text")
     args = p.parse_args()
     if args.what == "ratecheck":
         args.stop_after = args.stop_after or 200
@@ -747,6 +873,8 @@ def main():
         out.mkdir(parents=True, exist_ok=True)
         Path(str(ckpt) + ".pause").touch()
         print("asked the training to save and stop")
+    elif args.what == "scaling":
+        scaling(args)
     elif args.what == "status":
         lines = logfile.read_text(encoding="utf-8").splitlines() if logfile.exists() else ["no log yet"]
         print("\n".join(lines[-args.lines:]))

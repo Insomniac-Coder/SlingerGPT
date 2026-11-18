@@ -422,12 +422,21 @@ On the server (`ssh` from step 4), in `/data/code`:
    fasttext zstandard boto3` (CUDA 12.8 or newer for Blackwell; the same works on H200).
 7. `python research/test_train_492m.py gpu` (one minute: 8-bit build, flex mask = written-out mask, fused loss,
    attention speeds).
+7b. While round 1 of the text is being prepared (step 8 runs in another tmux window), the speed checks on made-up
+   text, so the GPUs are not idle (owner, 18 November):
+   - `python research/train_492m.py scaling --gpus 8 --made-up-text`: the window-4,096 speed on 1, 2, 4 and 8 GPUs
+     (about 8 minutes). Tell the owner if 8 GPUs give less than about 85% of 8x one GPU.
+   - `python research/train_492m.py bench --gpus 8 --made-up-text`: the 5-minute check, a minute at each window length
+     (1,024, 2,048, 4,096, 16,384 with the document mask), then the whole run's hours and cost at the measured speeds.
+     Try `--attention cudnn|flash` and `--micro-pieces 32768|65536|131072`, keep the fastest, and tell the owner the
+     projected hours and cost before the run starts.
 8. In tmux: `python research/prepare_492m.py run --data /data/492m --workers 140 --approved` (110 workers on the
    H200's 128 cores). Round 1 is about 5% of every source. Watch `prepare_492m.py status --data /data/492m`.
-9. Once round 1 is done, the test run: `python research/train_492m.py train --gpus 8 --data /data/492m --name speed
-   --stop-after 300`, trying `--attention cudnn|flash` and `--micro-pieces 32768|65536|131072`; then `kill -TERM`
-   one run and read its save time in the log; then `python research/train_492m.py ratecheck --gpus 8 --data
-   /data/492m`. Stop and tell the owner if the measured speed means more than 9 hours (B200).
+9. Once round 1 is done, the test run: `python research/train_492m.py bench --gpus 8 --data /data/492m` (the same
+   5-minute check on the real text, with the fastest settings from 7b), then `train --gpus 8 --data /data/492m --name
+   speed --stop-after 300` and `kill -TERM` it to read its save time in the log, then `python
+   research/train_492m.py ratecheck --gpus 8 --data /data/492m`. Stop and tell the owner if the measured speed means
+   more than 9 hours (B200).
 10. The run, in tmux: `python research/train_492m.py train --gpus 8 --data /data/492m --lr <chosen> --bucket
     <the bucket name create-bucket printed>`. Every 30
     minutes: `python research/train_492m.py status --data /data/492m`, `prepare_492m.py status`, and a short plain
