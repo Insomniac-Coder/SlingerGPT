@@ -2,6 +2,7 @@
 
     python research/nebius_ctl.py check                      sign-in, GPU quotas, B200 platform and presets (free)
     python research/nebius_ctl.py prices                     today's spot price per GPU-hour, by platform (free)
+    python research/nebius_ctl.py availability               whether 8-GPU servers can start now, spot and regular (free)
     python research/nebius_ctl.py status                     what exists now, and its state (free)
     python research/nebius_ctl.py price --max 3.000 --yes    the most to pay per GPU-hour for spot (a pricing policy)
     (price and create-server take --gpu b200 (default) or --gpu h200)
@@ -9,6 +10,7 @@
     python research/nebius_ctl.py create-server --yes        8x B200 (or --gpu h200) spot server, data disk at /data
     python research/nebius_ctl.py stop --yes | start --yes | delete-server --yes | delete-disk --yes
     python research/nebius_ctl.py ssh                        the command to log in
+    (every command takes --region us-north1 etc. to work in that region's default project, e.g. B300 spot)
     python research/nebius_ctl.py create-bucket --yes        Nebius storage for copies of the model, and its access key
     python research/nebius_ctl.py send-keys                  the storage key to the server (for train_492m.py --bucket)
     python research/nebius_ctl.py bucket                     what is in the storage (free)
@@ -32,6 +34,7 @@ POLICY = "slingergpt-492m-spot"
 GPUS = {   # --gpu: the platform and its 8-GPU preset (checked against the platform's presets by `check`)
     "b200": ("gpu-b200-sxm", "8gpu-160vcpu-1792gb"),
     "h200": ("gpu-h200-sxm", "8gpu-128vcpu-1600gb"),   # the owner already has 8 of these in us-central1 (18 November)
+    "b300": ("gpu-b300-sxm", "8gpu-192vcpu-2768gb"),   # spot in us-north1 and eu-west2 (not us-central1)
 }
 PLATFORM, PRESET = GPUS["b200"]
 IMAGE_FAMILY = "ubuntu24.04-cuda12"
@@ -72,6 +75,18 @@ async def find(service, project, name):
         if "NOT_FOUND" in str(e) or "not found" in str(e).lower():
             return None
         raise
+
+
+async def region_project(s, project, region):
+    """The tenant's default project in another region (Nebius makes one per region)."""
+    from nebius.api.nebius.iam.v1 import ProjectServiceClient, GetProjectRequest, ListProjectsRequest
+    svc = ProjectServiceClient(s)
+    tenant = (await svc.get(GetProjectRequest(id=project))).metadata.parent_id
+    for it in (await svc.list(ListProjectsRequest(parent_id=tenant, page_size=100))).items:
+        if it.metadata.name == f"default-project-{region}":
+            print(f"using project {it.metadata.id} ({it.metadata.name})")
+            return it.metadata.id
+    sys.exit(f"no default project in {region}")
 
 
 def yes_or_stop(args, what):
@@ -131,6 +146,32 @@ async def prices(s, project, args):
         if it.compute_instance.platform.startswith("gpu"):
             print(f"  {it.region:12s} {it.compute_instance.platform:16s} ${float(it.price.value):.2f} per {it.price.unit_title}"
                   f"  (8 GPUs: ${8 * float(it.price.value):.2f} an hour)")
+
+
+async def availability(s, project, args):
+    """Whether GPU servers can be started now, per region, platform and size: spot, regular and reserved (free).
+    'available' is the number that could start immediately, already limited by the account's quota."""
+    from nebius.api.nebius.iam.v1 import ProjectServiceClient, GetProjectRequest
+    from nebius.api.nebius.capacity.v1 import ResourceAdviceServiceClient, ListResourceAdviceRequest
+    tenant = (await ProjectServiceClient(s).get(GetProjectRequest(id=project))).metadata.parent_id
+    items, token = [], ""
+    while True:
+        r = await ResourceAdviceServiceClient(s).list(ListResourceAdviceRequest(parent_id=tenant, page_size=100, page_token=token))
+        items += list(r.items)
+        token = r.next_page_token
+        if not token:
+            break
+
+    def show(a):
+        level = a.availability_level.name.replace("AVAILABILITY_LEVEL_", "").lower() if a.availability_level else "?"
+        return f"{level:>8s} ({a.available} of quota {a.limit})"
+    print(f"{'region / fabric':28s} {'platform':16s} {'size':22s} {'spot':>24s} {'regular':>24s}")
+    for it in sorted(items, key=lambda i: (i.spec.region, i.spec.compute_instance.platform, i.spec.compute_instance.preset.name)):
+        ci = it.spec.compute_instance
+        if not ci.platform.startswith("gpu") or not ci.preset.name.startswith("8gpu"):
+            continue
+        print(f"{it.spec.region + ' ' + it.spec.fabric:28s} {ci.platform:16s} {ci.preset.name:22s} "
+              f"{show(it.status.preemptible):>24s} {show(it.status.on_demand):>24s}")
 
 
 async def status(s, project, args):
@@ -377,7 +418,7 @@ async def ssh(s, project, args):
 
 async def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("what", choices=["check", "prices", "status", "price", "create-bucket", "bucket", "download", "send-keys", "create-disk", "create-server", "start", "stop",
+    p.add_argument("what", choices=["check", "prices", "availability", "status", "price", "create-bucket", "bucket", "download", "send-keys", "create-disk", "create-server", "start", "stop",
                                     "delete-server", "delete-disk", "ssh"])
     p.add_argument("--yes", action="store_true", help="the owner said yes to what this costs")
     p.add_argument("--gb", type=int, default=1000, help="data disk size (owner: 1 TB is enough)")
@@ -386,15 +427,22 @@ async def main():
     p.add_argument("--max", type=float, default=0.0,
                    help="price: the most to pay per GPU-hour in US dollars (default: the owner's limit for --gpu)")
     p.add_argument("--gpu", choices=sorted(GPUS), default="b200", help="which 8-GPU server (price and create-server)")
+    p.add_argument("--region", default="", help="another region's default project (e.g. us-north1 for B300 spot); "
+                                                  "the disk, bucket and server all live in that region")
     args = p.parse_args()
     global PLATFORM, PRESET, POLICY
     PLATFORM, PRESET = GPUS[args.gpu]
     POLICY = f"slingergpt-492m-spot-{args.gpu}"
-    args.max = args.max or {"b200": 3.00, "h200": 2.20}[args.gpu]   # owner, 18 November: the day's spot price
+    args.max = args.max or {"b200": 3.00, "h200": 2.20}.get(args.gpu, 0.0)   # owner, 18 November: the day's spot price
+    if not args.max:
+        sys.exit(f"no price limit agreed with the owner for --gpu {args.gpu}: ask, then pass --max") if args.what == "price" else None
     project = credentials()
     s = sdk()
+    if args.region and args.region != os.environ.get("NEBIUS_REGION"):
+        project = await region_project(s, project, args.region)
+        os.environ["NEBIUS_REGION"] = args.region   # the storage address follows the region
     try:
-        await {"check": check, "prices": prices, "status": status, "create-bucket": create_bucket, "bucket": bucket,
+        await {"check": check, "prices": prices, "availability": availability, "status": status, "create-bucket": create_bucket, "bucket": bucket,
                "download": download, "send-keys": send_keys, "price": price, "create-disk": create_disk, "create-server": create_server,
                "start": lambda *a: power(*a, on=True), "stop": lambda *a: power(*a, on=False),
                "delete-server": lambda *a: delete(*a, what="server"), "delete-disk": lambda *a: delete(*a, what="disk"),

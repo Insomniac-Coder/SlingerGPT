@@ -373,9 +373,15 @@ processes in about 1 second, and the run resumes to the end.
 
 ### Nebius findings (18 November)
 
-- Quotas: `compute.instance.gpu.b200` in us-central1 is 0 (the owner's request for 8 is waiting). There is no
-  separate quota for spot servers, so the request covers them. `compute.instance.gpu.h200` is already 8 in
-  us-central1 (also 8 in eu-north1 and eu-west1).
+- Quotas: `compute.instance.gpu.b200` (regular servers) in us-central1 is 0 (the owner's request for 8 is
+  waiting). CORRECTION (afternoon): spot servers have their own quota, shown by `nebius_ctl.py availability`
+  (Nebius's capacity "resource advice"): 2 eight-GPU spot servers for most platforms, B200 in us-central1 included.
+  So for spot, the limit is Nebius's spare capacity, not quota. At 10:10 UTC: H200 spot in us-central1 and B300 spot
+  in us-north1 and eu-west2 were "high" (2 servers free); B200 spot in us-central1 was "low" (none free).
+- The tenant has a default project in every region; `nebius_ctl.py --region us-north1 ...` works in that one
+  (B300: `--gpu b300`, preset 8gpu-192vcpu-2768gb). The disk, bucket and server must share a region.
+- Spot prices move during the day: B200 in us-central1 $3.00 -> $3.90 -> $4.20 per GPU-hour, H200 $2.20 -> $1.58,
+  B300 in us-north1 $3.80 -> $4.40 (18 November). Check `prices` and `availability` on the rental day.
 - Spot prices at 05:39 UTC (`nebius_ctl.py prices`): B200 $3.00 and H200 $2.20 per GPU-hour in us-central1, so
   $24.00 and $17.60 an hour for 8.
 - 8x H200 instead of 8x B200: the H200 does about 2.3x less 8-bit maths per second, so training takes about 11-17
