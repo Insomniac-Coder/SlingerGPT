@@ -37,8 +37,8 @@ ROWS = {
     "infiwebmath":      (1.05, None, 0.0),
     "se_math":          (0.81, "se_math_top", 2.0),
     "worked_maths":     (0.95, "worked_maths", 6.0),
-    "finewiki":         (5.39, "finewiki", 7.5),
-    "simplewiki":       (0.34, "simplewiki", 1.5),
+    "finewiki":         (5.41, "finewiki", 7.5),      # +0.02B from Simple Wikipedia (owner, 18 November)
+    "simplewiki":       (0.32, "simplewiki", 1.5),    # 0.40% (not 0.43%): read at most ~4 times (owner, 18 November)
     "gutenberg":        (2.07, "gutenberg", 1.0),
     "doab":             (2.20, "doab", 2.0),
     "se_other":         (2.01, "se_other_top", 3.0),
@@ -75,8 +75,9 @@ def build():
             main[name] = round(100 * left / MAIN_B, 3)
     scale = 100 / sum(main.values())   # data_mix.md's rows are rounded; spread the rounding evenly
     main = {k: round(v * scale, 3) for k, v in main.items()}
-    return {"status": "DRAFT from data_mix.md's estimates: the owner has not approved it; per-source piece counts from "
-                      "the real word-piece list replace the estimates before training",
+    return {"status": "Data list APPROVED by the owner on 18 November 2026 (free model, no commercial use; Stack Exchange's "
+                      "older copy; Nemotron Diverse QA; Simple Wikipedia trimmed to 0.40%). Round 1's measured piece counts "
+                      "may still adjust shares before the run starts; the chat behaviour filters wait for their own yes.",
             "phases": {"main": main, "anneal": anneal, "long": {k: round(v, 3) for k, v in long.items()}},
             "billions": {"main": MAIN_B, "anneal": ANNEAL_B, "long": LONG_B}}
 

@@ -1,5 +1,5 @@
 {
- "status": "DRAFT from data_mix.md's estimates: the owner has not approved it; per-source piece counts from the real word-piece list replace the estimates before training",
+ "status": "Data list APPROVED by the owner on 18 November 2026 (free model, no commercial use; Stack Exchange's older copy; Nemotron Diverse QA; Simple Wikipedia trimmed to 0.40%). Round 1's measured piece counts may still adjust shares before the run starts; the chat behaviour filters wait for their own yes.",
  "phases": {
   "main": {
    "fineweb_edu": 25.995,
@@ -19,8 +19,8 @@
    "infiwebmath": 1.499,
    "se_math": 0.906,
    "worked_maths": 0.603,
-   "finewiki": 6.697,
-   "simplewiki": 0.297,
+   "finewiki": 6.726,
+   "simplewiki": 0.269,
    "gutenberg": 2.402,
    "doab": 2.605,
    "se_other": 2.493,

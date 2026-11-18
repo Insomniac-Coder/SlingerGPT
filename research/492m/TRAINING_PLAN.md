@@ -387,6 +387,11 @@ processes in about 1 second, and the run resumes to the end.
 
 - 18 November, decision 1 (commercial use): "It will be free to use model, no paid users." So no commercial use:
   the full data list stays (DCLM-Edu, and the model-written chat and maths sets, are kept).
+- 18 November, decision 1 (Stack Exchange): use the older copy (HuggingFaceH4/stack-exchange-preferences, from before
+  the July 2024 request).
+- 18 November, decision 1 (Nemotron-CC Diverse QA): use it.
+- 18 November, decision 1 (the data list as a whole): approved, with Simple Wikipedia trimmed from 0.43% to 0.40% of
+  the run (the difference to FineWiki), so it is read at most about 4 times.
 
 ### The rental day, command by command
 
