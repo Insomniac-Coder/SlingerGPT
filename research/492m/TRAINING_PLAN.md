@@ -383,6 +383,11 @@ processes in about 1 second, and the run resumes to the end.
   $250-400 on H200, against about 7-11 hours and $170-265 on B200: cheaper per hour, dearer in all. Memory (141 GB a
   GPU) is still ample.
 
+### The owner's answers (section 3)
+
+- 18 November, decision 1 (commercial use): "It will be free to use model, no paid users." So no commercial use:
+  the full data list stays (DCLM-Edu, and the model-written chat and maths sets, are kept).
+
 ### The rental day, command by command
 
 From the cloud sandbox (each costing step only after the owner's yes, with the price):
