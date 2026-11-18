@@ -37,7 +37,7 @@ GPUS = {   # --gpu: the platform and its 8-GPU preset (checked against the platf
     "b300": ("gpu-b300-sxm", "8gpu-192vcpu-2768gb"),   # spot in us-north1 and eu-west2 (not us-central1)
 }
 PLATFORM, PRESET = GPUS["b200"]
-IMAGE_FAMILY = "ubuntu24.04-cuda12"
+IMAGE_FAMILIES = ["ubuntu24.04-cuda13-latest", "ubuntu24.04-cuda13.0", "ubuntu24.04-cuda12"]   # first one the region has
 SSH_KEY = Path.home() / ".ssh" / "slingergpt_492m"
 STORAGE_KEY = Path.home() / ".nebius" / "slingergpt_storage_key.json"   # the bucket's access key; never printed
 KEY_FILE = Path.home() / ".nebius" / "slingergpt_sa_key.pem"
@@ -262,10 +262,17 @@ async def create_server(s, project, args):
         sys.exit(f"no data disk yet: run create-disk first")
     boot = await find(disks, project, BOOT)
     if boot is None:
+        from nebius.api.nebius.compute.v1 import ImageServiceClient, ListPublicRequest
+        region = os.environ.get("NEBIUS_REGION", "us-central1")
+        images = (await ImageServiceClient(s).list_public(ListPublicRequest(region=region, page_size=200))).items
+        family = next((f for f in IMAGE_FAMILIES if any(i.spec.image_family == f for i in images)), None)
+        if family is None:
+            sys.exit(f"no Ubuntu image with CUDA in {region}: {sorted({i.spec.image_family for i in images})}")
+        image = max((i for i in images if i.spec.image_family == family), key=lambda i: i.metadata.created_at)
+        print(f"boot disk from {family} ({image.metadata.id})")
         op = await disks.create(CreateDiskRequest(
             metadata=ResourceMetadata(parent_id=project, name=BOOT),
-            spec=DiskSpec(size_gibibytes=200, type=DiskSpec.DiskType.NETWORK_SSD,
-                          source_image_family=SourceImageFamily(image_family=IMAGE_FAMILY))))
+            spec=DiskSpec(size_gibibytes=200, type=DiskSpec.DiskType.NETWORK_SSD, source_image_id=image.metadata.id)))
         await op.wait()
         boot = await find(disks, project, BOOT)
     subnets = await SubnetServiceClient(s).list(ListSubnetsRequest(parent_id=project, page_size=10))
