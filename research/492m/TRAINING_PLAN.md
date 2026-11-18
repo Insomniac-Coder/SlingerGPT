@@ -177,13 +177,14 @@ Ask these one at a time, in plain words, each with a recommendation:
    - the key's ID is copied from its Authorized keys tab.
    The console does not make the key pair itself.
 5. In the cloud session's environment settings:
-   - `NEBIUS_PRIVATE_KEY`: the contents of `private.pem`. Secret: never commit it or paste it into chat.
+   - `NEBIUS_PRIVATE_KEY_B64`: `private.pem` encoded as one line of base64 (environment settings may not keep
+     line breaks). Secret: never commit it or paste it into chat. Decode it with `base64 -d`.
    - `NEBIUS_KEY_ID`, `NEBIUS_SERVICE_ACCOUNT_ID`, `NEBIUS_PROJECT_ID` and `NEBIUS_REGION` (us-central1). Not secret.
    - Optionally a Hugging Face read token (`HF_TOKEN`) for faster, less limited downloads.
 6. Check that the cloud environment's network access allows the Nebius API and SSH to outside addresses. If not, the
    environment needs full network access.
 
-The session writes the private key to a file only it can read (`chmod 600`) and passes it to the SDK:
+The session decodes the private key into a file only it can read (`chmod 600`) and passes it to the SDK:
 `SDK(parent_id=..., service_account_private_key_file_name=..., service_account_public_key_id=...,
 service_account_id=...)`.
 
