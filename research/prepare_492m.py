@@ -495,7 +495,14 @@ def fetch(adapter, f, work, limit):
         return local
     if limit:
         from huggingface_hub import HfFileSystem
-        return HfFileSystem().open(f"datasets/{repo}/{f}", "rb", block_size=8 << 20)
+        fh = HfFileSystem().open(f"datasets/{repo}/{f}", "rb", block_size=8 << 20)
+        if reader != "parquet":
+            return fh
+        import pyarrow.parquet as pq
+        if pq.ParquetFile(fh).metadata.row_group(0).total_byte_size < 256e6:
+            fh.seek(0)
+            return fh
+        fh.close()   # one huge block (DCLM-Edu: a single 4.8 GB row group): a whole download is far quicker
     from huggingface_hub import hf_hub_download
     return Path(hf_hub_download(repo, f, repo_type="dataset", local_dir=str(work / "downloads" / adapter)))
 
@@ -911,9 +918,8 @@ def clean_file(task):
     os.replace(str(out) + ".tmp", out)
     info = {"kept": len(kept), "dropped": dict(why), "seconds": round(time.time() - began, 1), "file": f}
     out.with_suffix(".json").write_text(json.dumps(info))
-    if not limit:   # free the disk: the download is not needed again
-        local = work / "downloads" / adapter / (Path(f).name if f.startswith("http") else f)
-        local.unlink(missing_ok=True)
+    local = work / "downloads" / adapter / (Path(f).name if f.startswith("http") else f)
+    local.unlink(missing_ok=True)   # free the disk: the download is not needed again
     return adapter, f, info
 
 
