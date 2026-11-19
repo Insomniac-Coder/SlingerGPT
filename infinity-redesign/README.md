@@ -15,7 +15,7 @@ Unzip the folder and open **`index.html`** in any browser. Everything is local, 
 | `custom.html` | Custom-order bead builder + request form + group orders |
 | `about.html` | About + help center (shipping, returns, fit, care, contact) |
 
-On any page, click **Design notes** (bottom-right) to show numbered pins that explain each change.
+To see numbered pins explaining each change, turn on **Show design notes** in the Mockups section of `index.html`, or add `?notes=1` to any page address (e.g. `home.html?notes=1`).
 
 The `previews/` folder has ready-made screenshots of every page, at desktop and mobile size.
 

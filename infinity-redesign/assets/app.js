@@ -116,8 +116,7 @@
         </div>
         <div class="ft-base"><span>© 2026 Infinity Phone Charms · Handmade in the USA <span class="ph-mark" title="Placeholder — confirm location">✎</span></span><span class="pay"><span>VISA</span><span>MC</span><span>AMEX</span><span>PayPal</span><span>Apple Pay</span></span></div>
       </div>
-    </footer>
-    <div class="mock-ribbon"><a href="index.html">← All mockups</a><button type="button" data-notes>Design notes</button></div>`;
+    </footer>`;
   }
 
   /* ---------- product card ---------- */
@@ -217,8 +216,8 @@
       pin.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); pin.classList.toggle('open'); });
       el.prepend(pin);
     });
-    const b = $('[data-notes]'); if (b) b.textContent = `Design notes (${els.length})`;
-    const on = new URLSearchParams(location.search).get('notes') === '1' || store.get('inf-notes', false);
+    // Design notes are opt-in via ?notes=1 (the overview page has a toggle for it)
+    const on = new URLSearchParams(location.search).get('notes') === '1';
     document.body.classList.toggle('notes', on);
   }
 
@@ -235,8 +234,7 @@
       const o = e.target.closest('[data-open]'); if (o) { open(o.dataset.open); return; }
       if (e.target.closest('[data-close]')) { closeAll(); return; }
       const rm = e.target.closest('[data-rm]'); if (rm) { cart.splice(+rm.dataset.rm, 1); store.set('inf-cart', cart); renderCart(); return; }
-      if (e.target.closest('[data-search]')) { const s = $('#searchPop'); s.classList.toggle('open'); if (s.classList.contains('open')) $('#q').focus(); return; }
-      if (e.target.closest('[data-notes]')) { const on = !document.body.classList.contains('notes'); document.body.classList.toggle('notes', on); store.set('inf-notes', on); }
+      if (e.target.closest('[data-search]')) { const s = $('#searchPop'); s.classList.toggle('open'); if (s.classList.contains('open')) $('#q').focus(); }
     });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeAll(); $('#searchPop')?.classList.remove('open'); } });
     $('#q')?.addEventListener('input', e => search(e.target.value));

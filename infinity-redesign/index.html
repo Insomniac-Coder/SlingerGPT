@@ -89,6 +89,11 @@
   @media (max-width: 960px) { .brand, .ui-kit { grid-template-columns: 1fr; } .ui-kit > div:last-child { max-width: 280px; } }
   @media (max-width: 520px) { .palette { grid-template-columns: repeat(2, 1fr); } .logo-show .logo .word b { font-size: 52px; } .logo-show .logo .mark { width: 100px; height: 50px; } }
 
+  .notes-toggle { display: flex; gap: 12px; align-items: center; cursor: pointer; max-width: 42ch; font-size: 14.5px; line-height: 1.4; opacity: .9; }
+  .notes-toggle input { appearance: none; width: 48px; height: 28px; border-radius: 999px; background: rgba(255,255,255,.2); border: 2px solid var(--cream); position: relative; flex-shrink: 0; cursor: pointer; margin: 0; transition: background .2s; }
+  .notes-toggle input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--cream); transition: transform .2s; }
+  .notes-toggle input:checked { background: var(--butter); }
+  .notes-toggle input:checked::after { transform: translateX(20px); background: var(--ink); }
   .mocks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
   .mock { color: var(--ink); text-decoration: none; display: flex; flex-direction: column; border: 2px solid var(--ink); border-radius: var(--r-lg); overflow: hidden; background: #fff; transition: transform .2s, box-shadow .2s; }
   .mock:hover { transform: translate(-3px, -3px); box-shadow: 7px 7px 0 var(--pink); }
@@ -217,7 +222,7 @@
   <!-- MOCKUPS -->
   <section class="sec" id="mockups" style="background:var(--ink);color:var(--cream)">
     <div class="wrap">
-      <div class="sec-hd"><div><span class="eyebrow" style="color:var(--mint)">The mockups</span><h2 style="color:#fff">Five pages, <em style="color:var(--pink)">fully clickable</em>.</h2></div><p style="max-width:42ch;opacity:.8">Tip: hit <b>“Design notes”</b> (bottom-right of any page) to see numbered pins explaining each change.</p></div>
+      <div class="sec-hd"><div><span class="eyebrow" style="color:var(--mint)">The mockups</span><h2 style="color:#fff">Five pages, <em style="color:var(--pink)">fully clickable</em>.</h2></div><label class="notes-toggle"><input type="checkbox" id="notesToggle"><span><b>Show design notes</b><br>Numbered pins on each page explaining every change</span></label></div>
       <div class="mocks" id="mocks"></div>
     </div>
   </section>
@@ -376,7 +381,12 @@ document.addEventListener('inf:ready', () => {
     ['custom.html', 'Custom orders', 'custom', 'Live bead builder (charm, keychain, reel, bracelet), request form, group orders.'],
     ['about.html', 'About & Help', 'about', 'Maker story, values, FAQ (shipping, returns, fit, care) and contact — one page instead of three.'],
     ['shop.html?vibe=scrubs', 'Collection example', 'scrubs', '“Scrub Life” — every nurse, dental & teacher piece in one place, across product types.']];
-  $('#mocks').innerHTML = M.map(([h, n, k, d]) => `<a class="mock" href="${h}"><div class="shot"><img class="d" src="previews/${k}-fold.jpg" alt="" loading="lazy"><img class="m" src="previews/${k}-mobile-fold.jpg" alt="" loading="lazy" onerror="this.remove()"></div><div class="txt"><h3>${n} <span aria-hidden="true">→</span></h3><p>${d}</p></div></a>`).join('');
+  $('#mocks').innerHTML = M.map(([h, n, k, d]) => `<a class="mock" href="${h}" data-href="${h}"><div class="shot"><img class="d" src="previews/${k}-fold.jpg" alt="" loading="lazy"><img class="m" src="previews/${k}-mobile-fold.jpg" alt="" loading="lazy" onerror="this.remove()"></div><div class="txt"><h3>${n} <span aria-hidden="true">→</span></h3><p>${d}</p></div></a>`).join('');
+
+  // Design-notes toggle: adds ?notes=1 to every mockup link
+  $('#notesToggle').addEventListener('change', e => {
+    document.querySelectorAll('[data-href]').forEach(a => { const h = a.dataset.href; a.href = e.target.checked ? h + (h.includes('?') ? '&' : '?') + 'notes=1' : h; });
+  });
 
   // Renames
   const R = C.filter(p => p.was).filter(p => ['Blue Snowman', 'Pink Lovers', 'You Make It Beat Faster Braclet', "Valentine's Day Stripped Heart", "Keep Calm I'ma Nurse Wrist Keychains", 'Rainbow'].includes(p.was));

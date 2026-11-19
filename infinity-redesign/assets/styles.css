@@ -331,16 +331,7 @@ section { position: relative; }
 }
 @media (max-width: 480px) { .ft-news form { flex-direction: column; } }
 
-/* ---------- Mockup tooling: design notes ---------- */
-.mock-ribbon {
-  position: fixed; right: 16px; bottom: 16px; z-index: 70; display: flex; gap: 8px; align-items: center;
-}
-.mock-ribbon a, .mock-ribbon button {
-  display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px; border-radius: 999px;
-  background: var(--butter); border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
-  font: 700 13px/1 var(--f-body); color: var(--ink); text-decoration: none; cursor: pointer;
-}
-.mock-ribbon a { background: #fff; }
+/* ---------- Design notes (shown with ?notes=1) ---------- */
 .note-pin {
   position: absolute; z-index: 30; top: 10px; left: 10px;
   display: none; align-items: center; justify-content: center;
