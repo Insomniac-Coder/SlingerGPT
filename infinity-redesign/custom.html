@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Custom Orders — Infinity (concept)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,400..900,0..100,0..1;1,9..144,400..900,0..100,0..1&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  .c-hero { padding: clamp(36px, 5vw, 70px) 0 40px; }
+  .c-hero .wrap { display: grid; grid-template-columns: 1fr 1.15fr; gap: clamp(28px, 4vw, 60px); align-items: start; }
+  .c-hero h1 { margin: 16px 0 18px; }
+  .c-hero ul { list-style: none; padding: 0; margin: 26px 0 0; display: grid; gap: 12px; }
+  .c-hero li { display: flex; gap: 12px; align-items: center; font-weight: 600; }
+  .c-hero li i { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--ink); display: grid; place-items: center; font-style: normal; font-size: 14px; flex-shrink: 0; }
+  .c-hero li:nth-child(1) i { background: var(--pink); } .c-hero li:nth-child(2) i { background: var(--teal); } .c-hero li:nth-child(3) i { background: var(--butter); } .c-hero li:nth-child(4) i { background: var(--lilac); }
+  .remake { display: none; gap: 14px; align-items: center; margin-top: 26px; padding: 12px; background: #fff; border: 2px solid var(--ink); border-radius: 18px; box-shadow: 4px 4px 0 var(--pink); }
+  .remake.on { display: flex; }
+  .remake img { width: 60px; height: 80px; object-fit: cover; border-radius: 10px; }
+
+  /* Builder */
+  .builder { background: #fff; border: 2px solid var(--ink); border-radius: var(--r-lg); box-shadow: 8px 8px 0 var(--ink); overflow: hidden; }
+  .b-preview { position: relative; background: radial-gradient(circle at 50% 40%, #fff 0, var(--blush) 70%); border-bottom: 2px solid var(--ink); aspect-ratio: 400 / 320; display: grid; place-items: center; }
+  .b-preview svg { width: 100%; height: 100%; }
+  .b-preview .est { position: absolute; right: 14px; top: 14px; background: var(--cream); border: 2px solid var(--ink); border-radius: 999px; padding: 8px 14px; font-weight: 700; font-size: 14px; }
+  .b-preview .est b { font-family: var(--f-display); font-size: 18px; }
+  .b-preview .lbl { position: absolute; left: 14px; top: 14px; }
+  .b-controls { padding: 22px; display: grid; gap: 22px; }
+  .b-step h4 { margin: 0 0 10px; display: flex; justify-content: space-between; font-size: 15px; }
+  .b-step h4 span { font-weight: 500; color: var(--ink-2); font-size: 13px; }
+  .seg { display: flex; flex-wrap: wrap; gap: 8px; }
+  .colors { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 8px; }
+  .colors button { position: relative; aspect-ratio: 1; border-radius: 50%; border: 2px solid var(--ink); cursor: pointer; padding: 0; }
+  .colors button::after { content: ""; position: absolute; left: 22%; top: 16%; width: 26%; height: 20%; border-radius: 50%; background: rgba(255,255,255,.65); }
+  .colors button[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--cream), 0 0 0 5px var(--ink); }
+  .colors button .n { position: absolute; inset: 0; display: grid; place-items: center; font: 800 12px/1 var(--f-body); color: var(--ink); z-index: 1; }
+  .charms { display: flex; flex-wrap: wrap; gap: 8px; }
+  .charms button { width: 46px; height: 46px; border-radius: 14px; border: 1.5px solid var(--line); background: #fff; cursor: pointer; font-size: 22px; }
+  .charms button[aria-pressed="true"] { border: 2px solid var(--ink); background: var(--blush); }
+  .letters input { width: 100%; height: 48px; border-radius: 14px; border: 1.5px solid var(--line); padding: 0 16px; font-size: 16px; letter-spacing: .2em; text-transform: uppercase; font-weight: 700; }
+  .letters input:focus { border-color: var(--ink); outline: none; }
+
+  /* Request form */
+  .req { display: grid; grid-template-columns: .9fr 1.1fr; gap: clamp(28px, 4vw, 60px); align-items: start; }
+  form.card-form { background: var(--cream); border: 2px solid var(--ink); border-radius: var(--r-lg); padding: clamp(20px, 3vw, 34px); display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .field { display: grid; gap: 6px; }
+  .field.full { grid-column: 1 / -1; }
+  .field label { font-weight: 700; font-size: 14px; }
+  .field input, .field select, .field textarea { width: 100%; min-width: 0; height: 50px; border-radius: 14px; border: 1.5px solid var(--line); background: #fff; padding: 0 14px; font-size: 16px; }
+  .field textarea { height: 110px; padding: 12px 14px; resize: vertical; }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--ink); outline: none; }
+  .summary { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 12px; background: #fff; border-radius: 14px; border: 1.5px dashed var(--ink-2); font-size: 14px; }
+  .summary .badge { text-transform: none; letter-spacing: 0; font-size: 12.5px; }
+  .faq-mini { display: grid; gap: 14px; margin-top: 24px; }
+  .faq-mini div { background: #fff; border-radius: 18px; padding: 16px 18px; border: 1.5px solid var(--line); }
+  .faq-mini b { display: block; margin-bottom: 4px; }
+
+  .bulk { background: var(--teal-ink); color: #EAF6F5; border-radius: var(--r-lg); padding: clamp(28px, 4vw, 56px); display: grid; grid-template-columns: 1.1fr 1fr; gap: 36px; align-items: center; }
+  .bulk h2 { color: #fff; } .bulk h2 em { color: var(--pink); }
+  .tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .tier { background: rgba(255,255,255,.08); border: 1.5px solid rgba(255,255,255,.25); border-radius: 18px; padding: 18px; text-align: center; }
+  .tier b { display: block; font: italic 800 34px/1 var(--f-display); color: var(--butter); }
+  .tier span { font-size: 13.5px; opacity: .85; }
+  .insp { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .insp a { text-decoration: none; }
+  .insp .im { aspect-ratio: 3/4; border-radius: 18px; overflow: hidden; background: var(--blush); }
+  .insp img { width: 100%; height: 100%; object-fit: cover; }
+  .insp small { display: block; margin-top: 8px; font-weight: 600; font-size: 13px; line-height: 1.3; }
+
+  @media (max-width: 960px) {
+    .c-hero .wrap, .req, .bulk { grid-template-columns: minmax(0, 1fr); }
+    .insp { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 560px) {
+    form.card-form { grid-template-columns: minmax(0, 1fr); }
+    .tiers { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body data-page="custom">
+<div id="site-top"></div>
+
+<main>
+  <section class="c-hero">
+    <div class="wrap">
+      <div>
+        <span class="eyebrow">Custom orders</span>
+        <h1>Dream it. <em>I'll bead it.</em></h1>
+        <p class="lede">Your name on a badge reel, your team's colors on a phone charm, matching keychains for the whole friend group — play with the builder, then send me your idea.</p>
+        <ul>
+          <li><i>1</i>Play with the builder — or just describe your vibe</li>
+          <li><i>2</i>I reply with a bead plan &amp; price within <span class="ph-mark" title="Placeholder — confirm">1–2 days</span></li>
+          <li><i>3</i>Approve it, pay, and I start stringing</li>
+          <li><i>4</i>Shipped in <span class="ph-mark" title="Placeholder — confirm">5–7 business days</span></li>
+        </ul>
+        <div class="remake" id="remake"></div>
+      </div>
+
+      <div class="builder" data-note="Interactive bead builder: customers play with type, colors, letters and a charm, and see a live preview + estimate. It's optional — on Squarespace the simple version is a Form block with the same fields.">
+        <div class="b-preview"><span class="badge pink lbl" id="typeLbl">Phone charm</span><span class="est">Estimate <b id="est">$12</b></span><svg id="pv" viewBox="0 0 400 320" aria-label="Live preview of your design" role="img"></svg></div>
+        <div class="b-controls">
+          <div class="b-step"><h4>1 · Pick a piece</h4><div class="seg" id="types"></div></div>
+          <div class="b-step"><h4>2 · Pick up to 3 colors <span id="colorNames"></span></h4><div class="colors" id="colors"></div></div>
+          <div class="b-step letters"><h4>3 · Add letters <span>optional · up to 10</span></h4><label class="sr" for="txt">Letters</label><input id="txt" maxlength="10" placeholder="e.g. RN, MAMA, SARAH" autocomplete="off"></div>
+          <div class="b-step"><h4>4 · Add a charm <span id="charmName"></span></h4><div class="charms" id="charms"></div></div>
+          <a class="btn block" href="#request">Send me this idea →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="request" style="padding-top:60px">
+    <div class="wrap req">
+      <div>
+        <span class="eyebrow">Request form</span>
+        <h2 style="margin:12px 0 14px">Tell me <em>everything</em>.</h2>
+        <p class="lede">Colors, names, an occasion, a photo you love — the more you share, the closer the first preview will be.</p>
+        <div class="faq-mini">
+          <div><b>How much does custom cost?</b>Usually the same as the shop — about <span class="ph-mark" title="Placeholder — confirm pricing">$9–15</span> per piece — plus a little for letters or special charms.</div>
+          <div><b>Can I send a photo for inspiration?</b>Yes! Attach it, or email it to <a href="mailto:infinityphonecharms@gmail.com">infinityphonecharms@gmail.com</a>.</div>
+          <div><b>Need it by a date?</b>Add it below and I'll tell you right away if I can make it.</div>
+        </div>
+      </div>
+      <form class="card-form" onsubmit="event.preventDefault(); INF.toast('Mockup: this would send the request to her inbox 💌')">
+        <div class="summary" id="summary"></div>
+        <div class="field"><label for="f1">Your name</label><input id="f1" required></div>
+        <div class="field"><label for="f2">Email</label><input id="f2" type="email" required></div>
+        <div class="field"><label for="f3">It's for…</label><select id="f3"><option>Me!</option><option>A gift</option><option>A group / unit / team</option><option>A wedding or party</option></select></div>
+        <div class="field"><label for="f4">How many?</label><input id="f4" type="number" min="1" value="1"></div>
+        <div class="field full"><label for="f5">Need it by (optional)</label><input id="f5" type="date"></div>
+        <div class="field full"><label for="f6">Anything else?</label><textarea id="f6" placeholder="Favorite colors, a name, a theme, a photo you love…"></textarea></div>
+        <div class="field full"><label for="f7">Inspiration photo (optional)</label><input id="f7" type="file" accept="image/*" style="padding-top:12px"></div>
+        <button class="btn block field full" type="submit">Send my request</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="sec" id="bulk" style="padding-top:0">
+    <div class="wrap">
+      <div class="bulk" data-note="Group orders are the biggest growth opportunity: she already sells nurse, dental and teacher designs. Units, schools and bridal parties buy 5–20 at a time.">
+        <div>
+          <span class="eyebrow" style="color:var(--mint)">Group &amp; unit orders</span>
+          <h2 style="margin:12px 0 14px">Matching sets for the <em>whole crew</em>.</h2>
+          <p style="opacity:.9;max-width:46ch">Badge reels for your nursing unit, teacher-appreciation keychains for the whole grade, bridesmaid charms in your wedding colors — everyone can pick their own colors.</p>
+          <a class="btn pink" style="margin-top:24px" href="#request">Plan a group order</a>
+        </div>
+        <div class="tiers">
+          <div class="tier"><b>5+</b><span>pieces<br><span class="ph-mark" title="Suggested — confirm">10% off</span></span></div>
+          <div class="tier"><b>10+</b><span>pieces<br><span class="ph-mark" title="Suggested — confirm">15% off</span></span></div>
+          <div class="tier"><b>20+</b><span>pieces<br>let's chat ✨</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-hd"><div><span class="eyebrow">Inspiration</span><h2>Made with <em>someone</em> in mind.</h2></div></div>
+      <div class="insp" id="insp"></div>
+    </div>
+  </section>
+</main>
+
+<div id="site-bottom"></div>
+
+<script src="assets/catalog.js"></script>
+<script src="assets/app.js"></script>
+<script>
+document.addEventListener('inf:ready', () => {
+  const { C, byId, img, esc, money } = INF;
+  const $ = s => document.querySelector(s);
+  const TYPES = { charm: ['Phone charm', 12], wrist: ['Wrist keychain', 9], reel: ['Badge reel', 10], bracelet: ['Bracelet', 7] };
+  const COLORS = [['Bubblegum', '#F59CC2'], ['Hot pink', '#E0458A'], ['Lilac', '#CBB8F3'], ['Purple', '#7E57C2'], ['Lagoon', '#33AFAD'], ['Mint', '#BDEBDC'],
+    ['Sky', '#8EC9F0'], ['Navy', '#2E3F7F'], ['Butter', '#FFE38A'], ['Peach', '#FFB48A'], ['Cherry', '#E0393E'], ['Forest', '#2F8F5B'], ['Black', '#2B2328'], ['Pearl', '#FFFDF8'], ['Gold', '#D9B04A']];
+  const CHARMS = [['none', '∅', 'No charm'], ['heart', '💗', 'Heart'], ['star', '⭐', 'Star'], ['bow', '🎀', 'Bow'], ['ghost', '👻', 'Ghost'], ['skull', '💀', 'Skull'], ['flower', '🌼', 'Daisy'], ['cow', '🐮', 'Cow'], ['nurse', '🩺', 'Nurse'], ['apple', '🍎', 'Teacher apple'], ['snow', '⛄', 'Snowman']];
+  const S = { type: 'charm', colors: ['Bubblegum', 'Lagoon', 'Pearl'], text: '', charm: 'heart' };
+  const hex = n => COLORS.find(c => c[0] === n)[1];
+
+  // remake banner
+  const rid = new URLSearchParams(location.search).get('remake');
+  if (rid && byId[rid]) { const p = byId[rid]; $('#remake').classList.add('on'); $('#remake').innerHTML = `<img src="${img(p.img[0])}" alt=""><div><b>Remaking: ${esc(p.n)}</b><br><span class="muted" style="font-size:14px">This one sold out — I'll use it as the starting point for yours.</span></div>`; S.type = p.type === 'Wrist Keychains' ? 'wrist' : p.type === 'Badge Reels' ? 'reel' : p.type === 'Bracelets' ? 'bracelet' : 'charm'; }
+
+  function bead(x, y, r, name, k) {
+    const f = hex(name), clear = name === 'Pearl';
+    return `<g><circle cx="${x}" cy="${y}" r="${r}" fill="${f}" stroke="#2B2328" stroke-width="1.6"/>${r > 5 ? `<ellipse cx="${x - r * .33}" cy="${y - r * .38}" rx="${r * .32}" ry="${r * .22}" fill="#fff" opacity="${clear ? .9 : .55}"/>` : ''}</g>`;
+  }
+  function letter(x, y, ch, s = 22) {
+    return `<g><rect x="${x - s / 2}" y="${y - s / 2}" width="${s}" height="${s}" rx="5" fill="#fff" stroke="#2B2328" stroke-width="1.6"/><text x="${x}" y="${y + 5.5}" text-anchor="middle" style="font:800 14px Figtree, sans-serif" fill="#2B2328">${esc(ch)}</text></g>`;
+  }
+  function charmAt(x, y, size = 30, hangFrom) {
+    if (S.charm === 'none') return '';
+    const e = CHARMS.find(c => c[0] === S.charm)[1];
+    const line = hangFrom ? `<line x1="${hangFrom[0]}" y1="${hangFrom[1]}" x2="${x}" y2="${y - size * .55}" stroke="#2B2328" stroke-width="1.6"/>` : '';
+    return `${line}<circle cx="${x}" cy="${y}" r="${size * .62}" fill="#fff" stroke="#2B2328" stroke-width="1.6"/><text x="${x}" y="${y + size * .34}" text-anchor="middle" style="font-size:${size}px">${e}</text>`;
+  }
+  // place beads along a polyline, leaving a gap in the middle for letters
+  function along(pts, sizes, gapLen) {
+    const seg = []; let L = 0;
+    for (let i = 1; i < pts.length; i++) { const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); seg.push([L, d]); L += d; }
+    const at = s => { for (let i = 0; i < seg.length; i++) { const [a, d] = seg[i]; if (s <= a + d) { const t = (s - a) / d; return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * t, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * t]; } } return pts.at(-1); };
+    const out = []; let s = sizes[0], k = 0; const mid = L / 2;
+    while (s < L - 4) {
+      const r = sizes[k % sizes.length];
+      if (gapLen && Math.abs(s - mid) < gapLen / 2) { s = mid + gapLen / 2 + r; continue; }
+      out.push([...at(s), r, k]); s += r + sizes[(k + 1) % sizes.length] + 1.5; k++;
+    }
+    return { out, at, L };
+  }
+  const col = k => S.colors[k % S.colors.length] || 'Pearl';
+
+  function draw() {
+    const t = S.type, txt = S.text.toUpperCase().replace(/[^A-Z0-9♡ ]/g, '');
+    let g = '';
+    if (t === 'charm' || t === 'bracelet' || t === 'wrist') {
+      const cx = 200, cy = t === 'charm' ? 158 : 168, R = t === 'charm' ? 86 : t === 'wrist' ? 104 : 100;
+      let pts = [];
+      if (t === 'charm') {
+        // teardrop: two strands from the knot + an arc around the bottom
+        const K = [cx, 22], d = cy - K[1], a = Math.acos(R / d), A0 = -Math.PI / 2 - a, A1 = -Math.PI / 2 + a;
+        pts.push(K);
+        for (let i = 0; i <= 80; i++) { const th = A0 - i / 80 * (2 * Math.PI - 2 * a); pts.push([cx + R * Math.cos(th), cy + R * Math.sin(th)]); }
+        pts.push(K);
+        g += `<path d="M${cx} ${K[1]} q -10 -16 0 -18 q 10 2 0 18" fill="none" stroke="#2B2328" stroke-width="2"/>`;
+      } else {
+        for (let i = 0; i <= 120; i++) { const th = -Math.PI / 2 - i / 120 * Math.PI * 2; pts.push([cx + R * Math.cos(th), cy + R * Math.sin(th)]); }
+      }
+      g += `<path d="M${pts.map(p => p.map(v => v.toFixed(1)).join(' ')).join(' L')}" fill="none" stroke="#2B2328" stroke-width="1.6" opacity=".55"/>`;
+      const sizes = t === 'wrist' ? [13] : t === 'bracelet' ? [8.5] : [9, 5, 5];
+      const gap = txt.length ? txt.length * 23 + 6 : 0;
+      const { out, at, L } = along(pts, sizes, gap);
+      // reorder so the bottom of the loop is the middle of the path for every type
+      let bi = 0; out.forEach(([x, y, r]) => { g += bead(x, y, r, r < 6 ? 'Gold' : col(bi++)); });
+      if (txt.length) { const mid = L / 2; [...txt].forEach((ch, i) => { const [x, y] = at(mid - (txt.length - 1) * 11.5 + i * 23); g += letter(x, y, ch); }); }
+      if (t === 'wrist') {
+        g += `<circle cx="${cx}" cy="${cy - R - 20}" r="16" fill="none" stroke="#9AA0A6" stroke-width="4"/><rect x="${cx - 9}" y="${cy - R - 8}" width="18" height="22" rx="7" fill="#C9CDD2" stroke="#2B2328" stroke-width="1.6"/>`;
+        g += charmAt(cx + R * Math.cos(2.4), cy + R * Math.sin(2.4), 30);
+      } else {
+        const by = cy + R; g += charmAt(cx, by + 36, 28, [cx, by + 6]);
+      }
+    } else { // badge reel
+      const cx = 200;
+      g += `<circle cx="${cx}" cy="78" r="58" fill="${hex(S.colors[0] || 'Pearl')}" stroke="#2B2328" stroke-width="2"/><circle cx="${cx}" cy="78" r="46" fill="#fff" stroke="#2B2328" stroke-width="1.6" opacity=".9"/>`;
+      g += charmAt(cx, 80, 38).replace(/<circle[^>]*\/>/, '');
+      const pts = [[cx, 138], [cx, 262]];
+      g += `<line x1="${cx}" y1="136" x2="${cx}" y2="264" stroke="#2B2328" stroke-width="1.6" opacity=".55"/>`;
+      const gap = txt.length ? Math.min(txt.length, 5) * 23 : 0;
+      const { out, at, L } = along(pts, [8, 8, 5], gap);
+      let bj = 0; out.forEach(([x, y, r]) => { g += bead(x, y, r, r < 6 ? 'Gold' : col(bj++)); });
+      if (txt.length) [...txt.slice(0, 5)].forEach((ch, i) => { const [x, y] = at(L / 2 - (Math.min(txt.length, 5) - 1) * 11.5 + i * 23); g += letter(x, y, ch); });
+      g += `<rect x="${cx - 12}" y="262" width="24" height="30" rx="5" fill="#C9CDD2" stroke="#2B2328" stroke-width="1.6"/>`;
+    }
+    $('#pv').innerHTML = g;
+    const est = TYPES[t][1] + (txt.replace(/ /g, '').length ? 2 : 0);
+    $('#est').textContent = money(est);
+    $('#typeLbl').textContent = TYPES[t][0];
+    $('#colorNames').textContent = S.colors.join(' · ');
+    $('#charmName').textContent = CHARMS.find(c => c[0] === S.charm)[2];
+    $('#summary').innerHTML = `<b style="margin-right:4px">Your design:</b><span class="badge pink">${TYPES[t][0]}</span>${S.colors.map(c => `<span class="badge" style="background:${hex(c)};${c === 'Black' || c === 'Navy' || c === 'Purple' || c === 'Forest' ? 'color:#fff' : ''}">${c}</span>`).join('')}${txt ? `<span class="badge new">“${esc(txt)}”</span>` : ''}${S.charm !== 'none' ? `<span class="badge mint">${CHARMS.find(c => c[0] === S.charm)[1]} charm</span>` : ''}<a href="#" style="margin-left:auto;font-weight:700" onclick="scrollTo({top:0,behavior:'smooth'});return false">Edit</a>`;
+  }
+  function controls() {
+    $('#types').innerHTML = Object.entries(TYPES).map(([k, [n, p]]) => `<button class="chip" aria-pressed="${S.type === k}" data-t="${k}">${n} <span class="ct">from ${money(p)}</span></button>`).join('');
+    $('#colors').innerHTML = COLORS.map(([n, h]) => { const i = S.colors.indexOf(n); return `<button aria-label="${n}" title="${n}" aria-pressed="${i > -1}" data-c="${n}" style="background:${h}">${i > -1 ? `<span class="n" style="${['Black', 'Navy', 'Purple', 'Forest', 'Cherry'].includes(n) ? 'color:#fff' : ''}">${i + 1}</span>` : ''}</button>`; }).join('');
+    $('#charms').innerHTML = CHARMS.map(([k, e, n]) => `<button aria-label="${n}" title="${n}" aria-pressed="${S.charm === k}" data-ch="${k}">${e}</button>`).join('');
+    draw();
+  }
+  document.addEventListener('click', e => {
+    const t = e.target.closest('[data-t]'); if (t) { S.type = t.dataset.t; controls(); return; }
+    const c = e.target.closest('[data-c]'); if (c) { const n = c.dataset.c, i = S.colors.indexOf(n); if (i > -1) { if (S.colors.length > 1) S.colors.splice(i, 1); } else { S.colors.push(n); if (S.colors.length > 3) S.colors.shift(); } controls(); return; }
+    const ch = e.target.closest('[data-ch]'); if (ch) { S.charm = ch.dataset.ch; controls(); }
+  });
+  $('#txt').addEventListener('input', e => { S.text = e.target.value; draw(); });
+  controls();
+
+  const insp = ['Made To Teach Wrist Keychain', 'Dental Squad Wrist Keychain', "Keep Calm I'm a Nurse Wrist Keychain", 'Mama Phone Charm', 'Peach Teach Badge Reel', 'Couples Black & White Bracelet Set'].map(n => C.find(p => p.n === n)).filter(Boolean);
+  $('#insp').innerHTML = insp.map(p => `<a href="product.html?id=${p.id}"><div class="im"><img src="${img(p.img[0])}" alt="" loading="lazy"></div><small>${esc(p.n)}</small></a>`).join('');
+});
+</script>
+</body>
+</html>

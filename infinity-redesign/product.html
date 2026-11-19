@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Product — Infinity (Product page concept)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,400..900,0..100,0..1;1,9..144,400..900,0..100,0..1&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  .pdp { display: grid; grid-template-columns: 1.08fr 1fr; gap: clamp(28px, 4.5vw, 64px); padding: 28px 0 80px; align-items: start; }
+  .crumbs { font-size: 14px; color: var(--ink-2); display: flex; gap: 8px; flex-wrap: wrap; padding-top: 26px; }
+  .crumbs a { text-decoration: none; } .crumbs a:hover { text-decoration: underline; }
+
+  .gallery { display: grid; grid-template-columns: 84px 1fr; gap: 14px; position: sticky; top: 96px; }
+  .thumbs { display: flex; flex-direction: column; gap: 10px; height: 0; min-height: 100%; overflow-y: auto; scrollbar-width: none; }
+  .thumbs::-webkit-scrollbar { display: none; }
+  .thumbs button { flex-shrink: 0; padding: 0; border: 2px solid transparent; border-radius: 14px; overflow: hidden; cursor: pointer; aspect-ratio: 3/4; background: var(--blush); }
+  .thumbs button[aria-current="true"] { border-color: var(--ink); }
+  .thumbs img { width: 100%; height: 100%; object-fit: cover; }
+  .main-ph { position: relative; aspect-ratio: 3/4; border-radius: var(--r-lg); overflow: hidden; background: var(--blush); border: 2px solid var(--ink); }
+  .main-ph img { width: 100%; height: 100%; object-fit: cover; }
+  .main-ph .tags { position: absolute; left: 16px; top: 16px; display: flex; gap: 6px; }
+  .main-ph .stamp { position: absolute; right: 16px; bottom: 16px; background: var(--cream); border: 2px solid var(--ink); border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 700; }
+
+  .info h1 { font-size: clamp(34px, 3.6vw, 50px); margin: 10px 0 14px; }
+  .info .kind { font: 700 12px/1 var(--f-body); letter-spacing: .14em; text-transform: uppercase; color: var(--teal-ink); }
+  .price-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .price-row .price { font-size: 34px; }
+  .scarcity { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--blush); font-weight: 700; font-size: 13.5px; }
+  .scarcity i { width: 8px; height: 8px; border-radius: 50%; background: var(--pink-deep); box-shadow: 0 0 0 4px rgba(217,58,126,.18); }
+  .blurb { font-size: 18px; margin: 20px 0 6px; color: var(--ink); max-width: 46ch; }
+  .was { font-size: 12.5px; color: var(--ink-2); margin-top: 8px; }
+  .was s { opacity: .8; }
+
+  .var-hd { display: flex; justify-content: space-between; margin: 26px 0 10px; font-weight: 700; }
+  .var-hd span { font-weight: 500; color: var(--ink-2); }
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 10px; }
+  .swatch { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 0; border: 0; background: none; cursor: pointer; text-align: center; font-size: 12.5px; font-weight: 600; line-height: 1.2; }
+  .swatch span.im { aspect-ratio: 1; border-radius: 16px; overflow: hidden; border: 2px solid var(--line); background: var(--blush); }
+  .swatch img { width: 100%; height: 100%; object-fit: cover; }
+  .swatch[aria-pressed="true"] span.im { border-color: var(--ink); box-shadow: 3px 3px 0 var(--pink); }
+  .swatch.out { opacity: .45; cursor: not-allowed; }
+  .swatch.out span.im::after { content: ""; position: absolute; left: 8%; right: 8%; top: 36%; height: 2px; background: var(--ink); transform: rotate(-35deg); }
+
+  .buy { display: flex; gap: 10px; margin-top: 26px; }
+  .buy .btn { flex: 1; min-height: 58px; font-size: 17px; }
+  .fav { width: 58px; height: 58px; border-radius: 50%; border: 2px solid var(--ink); background: #fff; display: grid; place-items: center; cursor: pointer; flex-shrink: 0; }
+  .fav svg { width: 24px; height: 24px; }
+  .fav[aria-pressed="true"] { background: var(--pink); }
+  .assure { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 18px; }
+  .assure div { background: #fff; border: 1.5px solid var(--line); border-radius: 16px; padding: 12px; font-size: 13px; line-height: 1.35; }
+  .assure b { display: block; font-size: 14px; margin-bottom: 2px; }
+
+  .acc { margin-top: 28px; border-top: 1.5px solid var(--ink); }
+  .acc details { border-bottom: 1.5px solid var(--line); }
+  .acc summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 18px 2px; font-weight: 700; font-size: 16.5px; }
+  .acc summary::-webkit-details-marker { display: none; }
+  .acc summary::after { content: "+"; font: 400 26px/1 var(--f-body); transition: transform .2s; }
+  .acc details[open] summary::after { transform: rotate(45deg); }
+  .acc .body { padding: 0 2px 20px; color: var(--ink-2); }
+  .acc ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+
+  .stickybar { display: none; }
+  @media (max-width: 900px) {
+    .pdp { grid-template-columns: 1fr; padding-top: 14px; }
+    .gallery { position: relative; top: auto; grid-template-columns: 1fr; }
+    .thumbs { flex-direction: row; order: 2; overflow-x: auto; height: auto; min-height: 0; }
+    .thumbs button { width: 64px; flex-shrink: 0; }
+    .assure { grid-template-columns: 1fr; }
+    .stickybar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; gap: 12px; align-items: center; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: var(--cream); border-top: 2px solid var(--ink); transform: translateY(110%); transition: transform .25s; }
+    .stickybar.show { transform: none; }
+    .stickybar img { width: 44px; height: 58px; border-radius: 10px; object-fit: cover; }
+    .stickybar .btn { margin-left: auto; min-height: 46px; }
+    .stickybar b { font-size: 14px; line-height: 1.2; display: block; }
+    .mock-ribbon { bottom: 86px; }
+  }
+</style>
+</head>
+<body data-page="shop">
+<div id="site-top"></div>
+
+<main class="wrap">
+  <nav class="crumbs" aria-label="Breadcrumb" id="crumbs"></nav>
+  <div class="pdp">
+    <div class="gallery" id="gallery" data-note="Big photo, thumbnails, and choosing an option swaps the photo. Clean, consistent backgrounds matter most here."></div>
+    <div class="info" id="info"></div>
+  </div>
+
+  <section style="padding-bottom:70px">
+    <div class="sec-hd" data-note="Cross-sell: same vibe, different product — bundles naturally and lifts order value toward the free-shipping threshold."><div><span class="eyebrow">Complete the set</span><h2>Pairs <em>well</em> with</h2></div></div>
+    <div class="rail" id="pairs"></div>
+  </section>
+  <section style="padding-bottom:90px">
+    <div class="sec-hd"><div><span class="eyebrow" id="moreEyebrow"></span><h2 id="moreTitle"></h2></div><a class="link-arrow" id="moreLink" href="shop.html">See all →</a></div>
+    <div class="rail" id="moreRail"></div>
+  </section>
+</main>
+
+<div class="stickybar" id="stickybar"></div>
+<div id="site-bottom"></div>
+
+<script src="assets/catalog.js"></script>
+<script src="assets/app.js"></script>
+<script>
+document.addEventListener('inf:ready', () => {
+  const { C, byId, card, img, money, esc, SINGULAR, VIBES, add, toast } = INF;
+  const $ = s => document.querySelector(s);
+  const qs = new URLSearchParams(location.search);
+  const p = byId[qs.get('id')] || C.find(x => x.n === 'Lip Balm Keychain');
+  document.title = `${p.n} — Infinity (Product page concept)`;
+  const PH = t => `<span class="ph-mark" title="Placeholder — confirm">${t}</span>`;
+
+  // Rewritten short copy: one-line hook (first sentence of her description, or a hand-written one for key products)
+  const HOOK = {
+    'Lip Balm Keychain': 'A fruity, 100% natural lip balm on a cute clip-on charm — so your balm is never lost at the bottom of your bag again.',
+    'Halloween Lip Balm Keychain': 'Spooky-cute charms + 100% natural, fruity lip balm. Clip it to your keys, bag or badge reel.',
+    'Beaded Pens': 'The pen everyone at work will try to borrow. 17 beaded styles, from roses to Stay Toxic.',
+    'Small Mystery Bag': 'A surprise piece picked by hand — you\'ll get a bracelet or a pen. The most fun $6 you\'ll spend.',
+    'Medium Mystery Bag': 'A surprise piece picked by hand — you\'ll get a phone charm or a wrist keychain.',
+    'Glass Beaded Bracelets': 'Light-catching glass beads with little gold spacers. Wear one, or stack three.'
+  };
+  const DETAILS = {
+    'Phone Charms': ['Hand-strung glass, acrylic & pearl-style beads', 'Strong, phone-safe cord — loops through your case\'s lanyard hole or a tether tab', 'Doubles as a bag, keychain or zipper charm', 'Lightweight — won\'t weigh your phone down'],
+    'Wrist Keychains': ['Chunky silicone & acrylic beads on a stretch-strong cord', 'Slips over most wrists for hands-free keys', 'Lobster clasp + split ring for keys, badges or bags'],
+    'Badge Reels': ['Retractable badge reel with a clip back', 'Hand-decorated topper with a beaded strand', 'Made for nurses, teachers & anyone with an ID badge'],
+    'Bracelets': ['Stretch cord — one size fits most wrists', 'Rolls on and off, stacks beautifully', 'Glass, crystal or acrylic beads (varies by style)'],
+    'Pens': ['Beaded barrel, comfy to hold', 'Smooth black ink', 'Fun to collect, perfect for gifting'],
+    'Bundles': ['A matching set, priced together', 'Ready to gift — add a gift note at checkout'],
+    'Lip Balm Keychains': ['All-natural formula: beeswax, coconut oil, shea butter, olive oil & real fruit extracts', 'Clip-on charm for keys, bags or badge reels', 'Each flavor comes with its own little charm'],
+    'Mystery Bags': ['Small: a bracelet or a pen', 'Medium: a phone charm or a wrist keychain', 'Picked by hand — no two bags are the same']
+  };
+
+  const avail = p.v.filter(v => v.s > 0 || v.unl);
+  let sel = p.v.length ? (avail[0] || p.v[0]) : null;
+  const imgsFor = () => { const s = new Set(p.img); if (sel && sel.img) { const a = [sel.img, ...[...s].filter(x => x !== sel.img)]; return a; } return [...s]; };
+  let cur = 0;
+
+  $('#crumbs').innerHTML = `<a href="home.html">Home</a><span>/</span><a href="shop.html">Shop</a><span>/</span><a href="shop.html?type=${encodeURIComponent(p.type)}">${p.type}</a><span>/</span><span>${esc(p.n)}</span>`;
+
+  function gallery() {
+    const ims = imgsFor(); cur = Math.min(cur, ims.length - 1);
+    const tags = [];
+    if (p.sold) tags.push('<span class="badge sold">Sold out</span>');
+    if (p.vibes.includes('holiday')) tags.push('<span class="badge mint">❄ Holiday drop</span>'); else if (p.new) tags.push('<span class="badge new">New</span>');
+    $('#gallery').innerHTML = `<div class="thumbs">${ims.length > 1 ? ims.map((x, i) => `<button aria-label="Photo ${i + 1}" aria-current="${i === cur}" data-th="${i}"><img src="${img(x)}" alt=""></button>`).join('') : ''}</div>
+      <div class="main-ph"><img src="${img(ims[cur])}" alt="${esc(p.n)}${sel ? ' — ' + esc(sel.n) : ''}"><div class="tags">${tags.join('')}</div>${!p.unl && !p.sold ? '<span class="stamp">✶ Handmade · one of a kind</span>' : ''}</div>`;
+    if (ims.length <= 1) $('#gallery').style.gridTemplateColumns = '1fr';
+  }
+
+  function info() {
+    const stock = sel ? sel.s : p.stock;
+    const scarcity = p.sold ? '' : p.unl ? '<span class="scarcity" style="background:var(--mint)">Made to order</span>'
+      : stock === 1 ? '<span class="scarcity"><i></i>Only one made</span>' : `<span class="scarcity"><i></i>Only ${stock} left</span>`;
+    const varName = p.type === 'Lip Balm Keychains' ? 'Flavor' : p.type === 'Pens' ? 'Style' : p.n.includes('Pride') ? 'Flag' : 'Color';
+    const vhtml = p.v.length ? `<div class="var-hd">${varName}: <span>${esc(sel.n)}</span></div>
+      <div class="swatches">${p.v.map((v, i) => `<button class="swatch${v.s > 0 ? '' : ' out'}" aria-pressed="${v === sel}" data-v="${i}" ${v.s > 0 ? '' : 'aria-disabled="true" title="Sold out"'}><span class="im">${v.img ? `<img src="${img(v.img)}" alt="">` : ''}</span>${esc(v.n)}</button>`).join('')}</div>` : '';
+    const hook = HOOK[p.n] || p.blurb || '';
+    $('#info').innerHTML = `
+      <span class="kind">${SINGULAR[p.type]}${p.vibes.length ? ' · ' + p.vibes.map(v => VIBES[v].n).join(' · ') : ''}</span>
+      <h1>${esc(p.n)}</h1>
+      <div class="price-row"><span class="price">${money(p.p)}</span>${scarcity}</div>
+      ${p.was ? `<p class="was">Renamed from <s>${esc(p.was)}</s> — clearer names help Google &amp; on-site search.</p>` : ''}
+      <p class="blurb" data-note="Descriptions on the live site run 150–300 words of generic copy ('Introducing the enchanting…'). New template: a one-line hook, then scannable details, care and shipping.">${esc(hook)}</p>
+      ${vhtml}
+      ${p.sold ? `<div class="buy"><a class="btn pink" href="custom.html?remake=${p.id}">Request a remake</a></div><p class="muted" style="margin-top:12px;font-size:14px">This one found its home. Most designs can be remade — similar colors, made just for you.</p>`
+      : `<div class="buy" data-note="One clear call to action. Quantity picker hidden when only one exists (true for ~90% of the shop)."><button class="btn" id="addBtn">Add to bag — ${money(p.p)}</button><button class="fav" aria-pressed="false" aria-label="Save for later" id="fav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/></svg></button></div>`}
+      <div class="assure" data-note="Answer the 3 questions that stop people buying: when does it ship, what does shipping cost, can I gift it. None of this is on the current product pages.">
+        <div><b>🚚 Ships fast</b>Out the door in ${PH('1–3 business days')}</div>
+        <div><b>✨ Free shipping</b>On orders ${PH('$25+')} — mix &amp; match</div>
+        <div><b>🎁 Gift-ready</b>Free gift note at checkout</div>
+      </div>
+      <div class="acc">
+        <details open><summary>The details</summary><div class="body"><ul>${(DETAILS[p.type] || []).map(d => `<li>${esc(d)}</li>`).join('')}<li>Handmade by one person — tiny variations make each piece unique</li></ul></div></details>
+        ${p.type === 'Phone Charms' ? `<details><summary>Will it fit my phone?</summary><div class="body">If your case has a lanyard hole or loop, the cord slips right through. No hole? Add a ${PH('clear tether tab')} that sits between your phone and case — it works with almost any phone.</div></details>` : ''}
+        <details><summary>Care</summary><div class="body">Wipe with a soft, damp cloth. Keep out of water and away from harsh chemicals and long sun exposure to keep colors bright.</div></details>
+        <details><summary>Shipping &amp; returns</summary><div class="body">Ships in ${PH('1–3 business days')} from ${PH('[city, state]')}. Free US shipping on orders ${PH('$25+')}. One-of-one pieces can't be restocked, so if anything arrives damaged, email within ${PH('7 days')} and I'll make it right.</div></details>
+      </div>`;
+    // sticky bar (mobile)
+    $('#stickybar').innerHTML = p.sold ? '' : `<img src="${img(imgsFor()[0])}" alt=""><div><b>${esc(p.n)}</b><span class="price">${money(p.p)}</span></div><button class="btn sm" id="addBtn2">Add to bag</button>`;
+  }
+
+  gallery(); info();
+  const doAdd = () => { add(p.id, sel ? sel.n : null); toast('Added to your bag ✨'); };
+  document.addEventListener('click', e => {
+    const th = e.target.closest('[data-th]'); if (th) { cur = +th.dataset.th; gallery(); return; }
+    const sw = e.target.closest('[data-v]'); if (sw && !sw.classList.contains('out')) { sel = p.v[+sw.dataset.v]; cur = 0; gallery(); info(); return; }
+    if (e.target.closest('#addBtn') || e.target.closest('#addBtn2')) { doAdd(); return; }
+    const f = e.target.closest('#fav'); if (f) { const on = f.getAttribute('aria-pressed') !== 'true'; f.setAttribute('aria-pressed', on); toast(on ? 'Saved for later ♡' : 'Removed from saved'); }
+  });
+  const sb = $('#stickybar');
+  new IntersectionObserver(([en]) => sb.classList.toggle('show', !en.isIntersecting && en.boundingClientRect.top < 0)).observe($('.info'));
+
+  // Pairs: same vibe, different type, in stock
+  let pairs = C.filter(x => x.id !== p.id && !x.sold && x.type !== p.type && x.vibes.some(v => p.vibes.includes(v)));
+  if (pairs.length < 4) pairs = pairs.concat(C.filter(x => x.id !== p.id && !x.sold && x.type !== p.type && !pairs.includes(x)).slice(0, 8 - pairs.length));
+  $('#pairs').innerHTML = pairs.slice(0, 8).map(x => card(x)).join('');
+  const more = C.filter(x => x.id !== p.id && x.type === p.type && !x.sold).slice(0, 8);
+  $('#moreEyebrow').textContent = 'Keep browsing';
+  $('#moreTitle').innerHTML = `More ${p.type.toLowerCase()}`;
+  $('#moreLink').href = `shop.html?type=${encodeURIComponent(p.type)}`;
+  if (more.length) $('#moreRail').innerHTML = more.map(x => card(x)).join(''); else $('#moreRail').closest('section').remove();
+});
+</script>
+</body>
+</html>

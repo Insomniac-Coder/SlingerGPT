@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shop — Infinity (Shop concept)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,400..900,0..100,0..1;1,9..144,400..900,0..100,0..1&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  .shop-hd { padding: 36px 0 22px; }
+  .crumbs { font-size: 14px; color: var(--ink-2); display: flex; gap: 8px; }
+  .crumbs a { text-decoration: none; } .crumbs a:hover { text-decoration: underline; }
+  .shop-hd h1 { font-size: clamp(40px, 5.4vw, 70px); margin: 14px 0 10px; }
+  .shop-hd .lede { max-width: 60ch; }
+  .typebar { display: flex; gap: 8px; overflow-x: auto; padding: 6px 2px 14px; margin: 18px -2px 0; scrollbar-width: none; }
+  .typebar::-webkit-scrollbar { display: none; }
+  .typebar .chip img { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; margin-left: -8px; border: 1.5px solid var(--line); }
+
+  .shop-body { display: grid; grid-template-columns: 250px 1fr; gap: 40px; align-items: start; padding-bottom: 90px; }
+  .filters { position: sticky; top: 96px; display: grid; gap: 26px; }
+  .fgroup h4 { margin: 0 0 12px; font: 700 12px/1 var(--f-body); letter-spacing: .14em; text-transform: uppercase; color: var(--teal-ink); }
+  .opt { display: flex; align-items: center; gap: 10px; padding: 7px 0; cursor: pointer; font-size: 15px; font-weight: 500; }
+  .opt input { appearance: none; width: 20px; height: 20px; border: 2px solid var(--ink); border-radius: 6px; background: #fff; display: grid; place-items: center; flex-shrink: 0; cursor: pointer; margin: 0; }
+  .opt input[type=radio] { border-radius: 50%; }
+  .opt input:checked { background: var(--ink); box-shadow: inset 0 0 0 3px #fff; }
+  .opt .ct { margin-left: auto; color: var(--ink-2); font-size: 13px; }
+  .opt .sw { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--ink); }
+  .help-card { background: var(--blush); border-radius: var(--r); padding: 18px; font-size: 14px; }
+  .help-card b { display: block; font-family: var(--f-display); font-size: 20px; margin-bottom: 6px; }
+  .help-card a { font-weight: 700; }
+
+  .toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 22px; min-height: 44px; }
+  .toolbar .count { font-weight: 600; }
+  .actives { display: flex; gap: 6px; flex-wrap: wrap; }
+  .actives button { display: inline-flex; gap: 6px; align-items: center; height: 32px; padding: 0 12px; border-radius: 999px; border: 0; background: var(--ink); color: var(--cream); font-size: 13px; font-weight: 600; cursor: pointer; }
+  .sort { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+  .sort select { height: 44px; border-radius: 999px; border: 1.5px solid var(--line); padding: 0 38px 0 16px; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%232B2328' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 14px center; appearance: none; font-weight: 600; cursor: pointer; }
+  .filter-btn { display: none; }
+  .shop-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  @media (min-width: 1360px) { .shop-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+  .promo { grid-column: span 1; border-radius: var(--r); background: var(--lilac); border: 2px solid var(--ink); padding: 22px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; min-height: 100%; }
+  .promo h3 { font-size: 28px; }
+  .promo p { font-size: 14.5px; color: var(--ink); opacity: .8; }
+  .promo .loop { width: 90px; color: var(--ink); }
+  .promo .loop .mark { width: 100%; height: auto; }
+  .more { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 44px; color: var(--ink-2); font-size: 14px; }
+  .more .bar { width: 220px; height: 6px; border-radius: 9px; background: var(--line); overflow: hidden; }
+  .more .bar i { display: block; height: 100%; background: var(--pink-deep); }
+  .empty { text-align: center; padding: 60px 20px; border: 2px dashed var(--line); border-radius: var(--r); }
+  .empty h3 { margin-bottom: 8px; }
+
+  @media (max-width: 960px) {
+    .shop-body { grid-template-columns: 1fr; }
+    .filters { display: none; }
+    .filter-btn { display: inline-flex; }
+    .shop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .sort span { display: none; }
+    .toolbar { gap: 8px; }
+    .toolbar .count { font-size: 14px; }
+    .sort select { height: 38px; padding: 0 30px 0 12px; font-size: 14px; background-position: right 10px center; }
+    .filter-btn { min-height: 38px; }
+    .promo h3 { font-size: 22px; }
+    .promo { padding: 16px; }
+  }
+  #filterDrawer .filters { display: grid; position: static; }
+</style>
+</head>
+<body data-page="shop">
+<div id="site-top"></div>
+
+<main>
+  <section class="shop-hd">
+    <div class="wrap">
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="home.html">Home</a><span>/</span><span id="crumb">Shop</span></nav>
+      <h1 id="title">Shop <em>everything</em></h1>
+      <p class="lede" id="sub">102 handmade pieces. Almost every one is one-of-one — when it's gone, it's gone.</p>
+      <div class="typebar" id="typebar" role="toolbar" aria-label="Product type" data-note="One clear row of product types with counts and a tiny photo. The old site had 10 text links, two of them duplicates (Pens / Pens & Keychains) and one mixing Halloween with Christmas."></div>
+    </div>
+  </section>
+
+  <div class="wrap shop-body">
+    <aside class="filters" id="filters" aria-label="Filters">
+      <div class="fgroup" data-note="Vibe filters cut across product types — e.g. every Scrub Life piece (badge reels + nurse charms + teacher keychains) in one click."><h4>Vibe</h4><div id="fVibe"></div></div>
+      <div class="fgroup"><h4>Price</h4><div id="fPrice"></div></div>
+      <div class="fgroup"><h4>Availability</h4>
+        <label class="opt"><input type="checkbox" id="fStock"> Hide sold out <span class="ct" id="soldCt"></span></label>
+      </div>
+      <div class="help-card"><b>Can't find it?</b>Most designs can be remade in your colors. <a href="custom.html">Request a custom piece →</a></div>
+    </aside>
+
+    <div>
+      <div class="toolbar">
+        <button class="chip filter-btn" data-open="filterDrawer">⚙ Filters</button>
+        <span class="count" id="count"></span>
+        <div class="actives" id="actives"></div>
+        <label class="sort" data-note="Sorting didn't exist. 'Featured' puts in-stock + seasonal first and sold-out last."><span>Sort</span>
+          <select id="sort"><option value="featured">Featured</option><option value="new">Newest</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select>
+        </label>
+      </div>
+      <div class="grid shop-grid" id="grid" data-note="4/3/2 columns instead of 2 huge photos per screen on desktop and 1 per screen on mobile (≈100 scrolls to see everything). Hover shows the second photo + quick add."></div>
+      <div class="more" id="more"></div>
+    </div>
+  </div>
+</main>
+
+<aside class="drawer left" id="filterDrawer" aria-label="Filters">
+  <div class="drawer-hd"><h3>Filters</h3><button class="icon-btn" data-close aria-label="Close">✕</button></div>
+  <div class="drawer-bd" id="filterSlot"></div>
+  <div class="drawer-ft"><button class="btn block" data-close id="seeN">See results</button></div>
+</aside>
+
+<div id="site-bottom"></div>
+
+<script src="assets/catalog.js"></script>
+<script src="assets/app.js"></script>
+<script>
+document.addEventListener('inf:ready', () => {
+  const { C, card, img, money, VIBES, SINGULAR, LOGO_MARK, esc } = INF;
+  const $ = s => document.querySelector(s);
+  const qs = new URLSearchParams(location.search);
+  const TYPES = ['Phone Charms', 'Wrist Keychains', 'Badge Reels', 'Bracelets', 'Bundles', 'Pens', 'Lip Balm Keychains', 'Mystery Bags'];
+  const PRICES = { any: ['Any price', () => true], under5: ['Under $5', p => p.p < 5], under10: ['Under $10', p => p.p < 10], '10plus': ['$10 and up', p => p.p >= 10] };
+  const COLORS = { holiday: 'var(--mint)', spooky: 'var(--lilac)', scrubs: 'var(--teal)', sweet: 'var(--pink)', cause: 'var(--butter)' };
+  const S = { type: qs.get('type') || 'all', vibes: new Set((qs.get('vibe') || '').split(',').filter(Boolean)), price: qs.get('price') || 'any', hideSold: qs.get('stock') === '1', sort: qs.get('sort') || 'featured', shown: 24 };
+
+  // mobile: filters live inside the drawer
+  const mq = matchMedia('(max-width: 960px)');
+  const place = () => { const f = $('#filters'); (mq.matches ? $('#filterSlot') : document.querySelector('.shop-body')).prepend(f); };
+  mq.addEventListener('change', place); place();
+
+  function base() { return C.filter(p => (S.type === 'all' || p.type === S.type)); }
+  function apply(list, skip) {
+    return list.filter(p => (skip === 'vibe' || !S.vibes.size || p.vibes.some(v => S.vibes.has(v)))
+      && (skip === 'price' || PRICES[S.price][1](p)) && (!S.hideSold || !p.sold));
+  }
+  function sorted(list) {
+    const l = [...list];
+    if (S.sort === 'low') l.sort((a, b) => a.p - b.p || a.ord - b.ord);
+    else if (S.sort === 'high') l.sort((a, b) => b.p - a.p || a.ord - b.ord);
+    else if (S.sort === 'new') l.sort((a, b) => a.ord - b.ord);
+    else l.sort((a, b) => (a.sold - b.sold) || (b.vibes.includes('holiday') - a.vibes.includes('holiday')) || a.ord - b.ord);
+    return l;
+  }
+
+  function render() {
+    // type chips
+    const thumbs = { 'Phone Charms': 'Purple Drop Dead Phone Charm', 'Wrist Keychains': 'Cute Pink and White Ghost Wrist Keychain', 'Badge Reels': 'Bear Holding a Cupcake Badge Reel', 'Bracelets': 'Fairy Bracelet', 'Bundles': 'Brown Daisy Pen & Keychain Bundle', 'Pens': 'Beaded Pens', 'Lip Balm Keychains': 'Lip Balm Keychain', 'Mystery Bags': 'Small Mystery Bag' };
+    $('#typebar').innerHTML = `<button class="chip" aria-pressed="${S.type === 'all'}" data-type="all">All <span class="ct">${C.length}</span></button>` +
+      TYPES.map(t => { const th = C.find(p => p.n === thumbs[t]); return `<button class="chip" aria-pressed="${S.type === t}" data-type="${t}">${th ? `<img src="${img(th.img[0])}" alt="">` : ''}${t} <span class="ct">${C.filter(p => p.type === t).length}</span></button>`; }).join('');
+    // vibe options with live counts
+    const bv = apply(base(), 'vibe');
+    $('#fVibe').innerHTML = Object.entries(VIBES).map(([k, v]) => `<label class="opt"><input type="checkbox" data-vibe="${k}" ${S.vibes.has(k) ? 'checked' : ''}><span class="sw" style="background:${COLORS[k]}"></span>${v.n}<span class="ct">${bv.filter(p => p.vibes.includes(k)).length}</span></label>`).join('');
+    const bp = apply(base(), 'price');
+    $('#fPrice').innerHTML = Object.entries(PRICES).map(([k, [n, f]]) => `<label class="opt"><input type="radio" name="price" data-price="${k}" ${S.price === k ? 'checked' : ''}>${n}<span class="ct">${bp.filter(f).length}</span></label>`).join('');
+    $('#fStock').checked = S.hideSold; $('#soldCt').textContent = base().filter(p => p.sold).length + ' sold out';
+
+    // header copy
+    const vibeOne = S.vibes.size === 1 ? [...S.vibes][0] : null;
+    const titles = { holiday: 'The Holiday <em>Drop</em> ❄', spooky: 'Stay <em>Spooky</em>', scrubs: 'Scrub <em>Life</em>', sweet: 'Sweet &amp; <em>Pretty</em>', cause: 'Wear it for a <em>cause</em>' };
+    const subs = { holiday: 'Snowmen, reindeer, trees & sweater weather — hand-strung for the season. Most are one-of-one, so grab your favorite early.', spooky: 'Skulls, ghosts and cow-ghosts. Spooky season is a lifestyle.', scrubs: 'Badge reels, phone charms & keychains for nurses, teachers and dental squads. Ask about matching sets for your unit.', sweet: 'Bows, pearls, hearts, rainbows — every shade of cute.', cause: 'Pride and awareness pieces that start conversations.' };
+    if (vibeOne && S.type === 'all') { $('#title').innerHTML = titles[vibeOne]; $('#sub').textContent = subs[vibeOne]; $('#crumb').textContent = VIBES[vibeOne].n; }
+    else if (S.type !== 'all') { const w = S.type.split(' '); $('#title').innerHTML = w.length > 1 ? `${w.slice(0, -1).join(' ')} <em>${w.at(-1).toLowerCase()}</em>` : `<em>${S.type}</em>`; $('#sub').textContent = { 'Phone Charms': 'Beaded straps that loop onto your case — also cute on bags and zippers.', 'Wrist Keychains': 'Hands-free keys, cuter. Slip it on your wrist, clip it to your bag.', 'Badge Reels': 'Make the ID badge the best part of the uniform.', 'Bracelets': 'Stretchy, stackable, giftable.', 'Bundles': 'Matching sets — pen + keychain, charm + keychain.', 'Pens': 'Beaded pens in 17 styles — the stocking stuffer of champions.', 'Lip Balm Keychains': '100% natural fruity balm on a charm you can clip anywhere.', 'Mystery Bags': 'A surprise piece picked by hand. Small: a bracelet or pen. Medium: a phone charm or wrist keychain.' }[S.type] || ''; $('#crumb').textContent = S.type; }
+    else { $('#title').innerHTML = 'Shop <em>everything</em>'; $('#sub').textContent = `${C.length} handmade pieces. Almost every one is one-of-one — when it's gone, it's gone.`; $('#crumb').textContent = 'Shop'; }
+
+    // results
+    const res = sorted(apply(base()));
+    $('#count').textContent = `${res.length} piece${res.length === 1 ? '' : 's'}`;
+    $('#seeN').textContent = `See ${res.length} results`;
+    const act = [...S.vibes].map(v => `<button data-unvibe="${v}">${VIBES[v].n} ✕</button>`);
+    if (S.price !== 'any') act.push(`<button data-unprice>${PRICES[S.price][0]} ✕</button>`);
+    if (S.hideSold) act.push(`<button data-unsold>In stock ✕</button>`);
+    $('#actives').innerHTML = act.join('');
+
+    if (!res.length) {
+      $('#grid').innerHTML = `<div class="empty" style="grid-column:1/-1"><h3>Nothing here… yet!</h3><p class="muted">Try removing a filter — or <a href="custom.html">ask for a custom piece</a> in exactly the vibe you want.</p></div>`;
+      $('#more').innerHTML = ''; sync(); return;
+    }
+    const page = res.slice(0, S.shown).map(p => card(p));
+    const promo = `<div class="promo"><div class="loop">${LOGO_MARK}</div><div><h3>Not quite your colors?</h3><p style="margin-top:8px">Most pieces can be remade in your colors, with your name, or for your whole team.</p></div><a class="btn sm" href="custom.html">Make it custom</a></div>`;
+    if (page.length > 6) page.splice(6, 0, promo);
+    $('#grid').innerHTML = page.join('');
+    $('#more').innerHTML = res.length > S.shown
+      ? `<span>Showing ${S.shown} of ${res.length}</span><div class="bar"><i style="width:${S.shown / res.length * 100}%"></i></div><button class="btn ghost" id="loadMore">Load more</button>`
+      : (res.length > 12 ? `<span>You've seen all ${res.length} ✨</span>` : '');
+    sync();
+  }
+  function sync() {
+    const p = new URLSearchParams();
+    if (S.type !== 'all') p.set('type', S.type); if (S.vibes.size) p.set('vibe', [...S.vibes].join(','));
+    if (S.price !== 'any') p.set('price', S.price); if (S.hideSold) p.set('stock', '1'); if (S.sort !== 'featured') p.set('sort', S.sort);
+    if (qs.get('notes')) p.set('notes', qs.get('notes'));
+    try { history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : '')); } catch (e) { /* file:// in some browsers */ }
+  }
+
+  document.addEventListener('click', e => {
+    const t = e.target.closest('[data-type]'); if (t) { S.type = t.dataset.type; S.shown = 24; render(); return; }
+    const uv = e.target.closest('[data-unvibe]'); if (uv) { S.vibes.delete(uv.dataset.unvibe); render(); return; }
+    if (e.target.closest('[data-unprice]')) { S.price = 'any'; render(); return; }
+    if (e.target.closest('[data-unsold]')) { S.hideSold = false; render(); return; }
+    if (e.target.closest('#loadMore')) { S.shown += 24; render(); }
+  });
+  document.addEventListener('change', e => {
+    const v = e.target.dataset.vibe; if (v) { e.target.checked ? S.vibes.add(v) : S.vibes.delete(v); S.shown = 24; render(); return; }
+    const pr = e.target.dataset.price; if (pr) { S.price = pr; render(); return; }
+    if (e.target.id === 'fStock') { S.hideSold = e.target.checked; render(); return; }
+    if (e.target.id === 'sort') { S.sort = e.target.value; render(); }
+  });
+  $('#sort').value = S.sort;
+  render();
+});
+</script>
+</body>
+</html>

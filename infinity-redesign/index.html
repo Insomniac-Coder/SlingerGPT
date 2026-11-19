@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Infinity Redesign Concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,400..900,0..100,0..1;1,9..144,400..900,0..100,0..1&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  .topbar { position: sticky; top: 0; z-index: 30; background: color-mix(in srgb, var(--cream) 90%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  .topbar .wrap { display: flex; align-items: center; gap: 18px; height: 64px; }
+  .topbar nav { display: flex; gap: 2px; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
+  .topbar nav a { padding: 8px 12px; border-radius: 999px; font-weight: 600; font-size: 14px; text-decoration: none; white-space: nowrap; }
+  .topbar nav a:hover { background: var(--blush); }
+  .topbar .logo .mark { width: 50px; height: 25px; }
+  .topbar .logo .word b { font-size: 24px; }
+  @media (max-width: 860px) { .topbar nav { display: none; } }
+
+  .cover { padding: clamp(48px, 8vw, 110px) 0 clamp(40px, 6vw, 80px); position: relative; overflow: hidden; }
+  .cover h1 { font-size: clamp(48px, 8.4vw, 118px); margin: 18px 0 22px; max-width: 11ch; }
+  .cover .lede { max-width: 56ch; }
+  .cover .ctas { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 30px; }
+  .cover .bigmark { position: absolute; right: -4%; top: 12%; width: min(46vw, 640px); color: var(--ink); opacity: .95; transform: rotate(-8deg); pointer-events: none; }
+  .cover .bigmark .mark { width: 100%; height: auto; }
+  @media (max-width: 860px) { .cover .bigmark { position: static; width: 70%; margin: 10px auto 0; display: block; transform: rotate(-6deg); } }
+
+  .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+  .stat { background: #fff; border: 2px solid var(--ink); border-radius: var(--r); padding: 20px; }
+  .stat b { display: block; font: italic 800 clamp(34px, 3.4vw, 46px)/1 var(--f-display); font-variation-settings: "SOFT" 100, "WONK" 1; }
+  .stat span { display: block; margin-top: 8px; font-size: 14px; color: var(--ink-2); line-height: 1.4; }
+  .stat:nth-child(1) b { color: var(--pink-deep); } .stat:nth-child(2) b { color: var(--teal-ink); } .stat:nth-child(4) b { color: var(--pink-deep); } .stat:nth-child(5) b { color: var(--teal-ink); }
+  @media (max-width: 960px) { .stats { grid-template-columns: 1fr 1fr; } .stat:last-child { grid-column: 1 / -1; } }
+
+  .ba { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .ba figure { margin: 0; }
+  .ba .frame { border-radius: 18px; overflow: hidden; border: 2px solid var(--ink); background: #fff; box-shadow: 6px 6px 0 var(--ink); }
+  .ba .frame .chrome { height: 28px; background: #F1E6EA; border-bottom: 2px solid var(--ink); display: flex; gap: 6px; align-items: center; padding: 0 10px; }
+  .ba .frame .chrome i { width: 9px; height: 9px; border-radius: 50%; background: #fff; border: 1.5px solid var(--ink); }
+  .ba img { width: 100%; display: block; }
+  .ba figcaption { display: flex; align-items: center; gap: 10px; margin-top: 16px; font-weight: 600; }
+  .ba figcaption .badge { flex-shrink: 0; }
+  .ba.before-after .after .frame { box-shadow: 6px 6px 0 var(--pink); }
+  @media (max-width: 760px) { .ba { grid-template-columns: 1fr; } }
+  .ba-tabs { display: flex; gap: 8px; margin-bottom: 22px; flex-wrap: wrap; }
+
+  .audit { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .issue { background: #fff; border-radius: var(--r); border: 1.5px solid var(--line); padding: 22px; display: flex; flex-direction: column; gap: 10px; }
+  .issue .top { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+  .issue .area { font: 700 11px/1 var(--f-body); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2); }
+  .issue h3 { font-size: 21px; line-height: 1.15; }
+  .issue p { font-size: 14.5px; color: var(--ink-2); }
+  .issue .fix { margin-top: auto; padding-top: 12px; border-top: 1.5px dashed var(--line); font-size: 14.5px; }
+  .issue .fix b { color: var(--teal-ink); }
+  .sev { height: 24px; padding: 0 10px; border-radius: 999px; font: 800 11px/24px var(--f-body); letter-spacing: .06em; text-transform: uppercase; }
+  .sev.h { background: var(--pink-deep); color: #fff; } .sev.m { background: var(--butter); } .sev.l { background: var(--mint); }
+  @media (max-width: 1000px) { .audit { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 640px) { .audit { grid-template-columns: 1fr; } }
+
+  .brand { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; }
+  .tile { background: #fff; border: 2px solid var(--ink); border-radius: var(--r-lg); padding: clamp(20px, 3vw, 34px); }
+  .tile h4 { margin: 0 0 18px; font: 700 12px/1 var(--f-body); letter-spacing: .14em; text-transform: uppercase; color: var(--teal-ink); }
+  .logo-show { display: grid; place-items: center; gap: 22px; padding: 30px 0 10px; background: var(--cream); border-radius: var(--r); }
+  .logo-show .logo .mark { width: 150px; height: 75px; }
+  .logo-show .logo .word b { font-size: 76px; }
+  .logo-show .logo .word small { font-size: 13px; margin-top: 10px; }
+  .logo-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+  .logo-row > div { width: 92px; height: 92px; border-radius: 22px; display: grid; place-items: center; border: 2px solid var(--ink); }
+  .logo-row .mark { width: 74px; height: 37px; }
+  .logo-why { margin-top: 18px; font-size: 14.5px; color: var(--ink-2); }
+  .palette { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .sw { border-radius: 18px; border: 2px solid var(--ink); overflow: hidden; background: #fff; }
+  .sw i { display: block; height: 70px; }
+  .sw div { padding: 8px 10px; font-size: 12.5px; line-height: 1.3; }
+  .sw b { display: block; font-size: 14px; }
+  .type-spec { margin-top: 26px; display: grid; gap: 14px; }
+  .type-spec .d { font: italic 700 46px/1 var(--f-display); font-variation-settings: "SOFT" 100, "WONK" 1; }
+  .type-spec .d em { color: var(--pink-deep); }
+  .type-spec .b { font-size: 17px; }
+  .type-spec small { color: var(--ink-2); font-size: 13px; display: block; margin-top: 4px; }
+  .ui-kit { display: grid; grid-template-columns: 1fr 260px; gap: 26px; align-items: start; }
+  .ui-kit .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+  .photo-dir { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .photo-dir figure { margin: 0; }
+  .photo-dir .im { aspect-ratio: 3/4; border-radius: 18px; overflow: hidden; border: 2px solid var(--ink); position: relative; }
+  .photo-dir img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-dir .mk { position: absolute; top: 10px; left: 10px; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; border: 2px solid var(--ink); }
+  .photo-dir figcaption { font-size: 13.5px; margin-top: 8px; color: var(--ink-2); }
+  @media (max-width: 960px) { .brand, .ui-kit { grid-template-columns: 1fr; } .ui-kit > div:last-child { max-width: 280px; } }
+  @media (max-width: 520px) { .palette { grid-template-columns: repeat(2, 1fr); } .logo-show .logo .word b { font-size: 52px; } .logo-show .logo .mark { width: 100px; height: 50px; } }
+
+  .mocks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .mock { color: var(--ink); text-decoration: none; display: flex; flex-direction: column; border: 2px solid var(--ink); border-radius: var(--r-lg); overflow: hidden; background: #fff; transition: transform .2s, box-shadow .2s; }
+  .mock:hover { transform: translate(-3px, -3px); box-shadow: 7px 7px 0 var(--pink); }
+  .mock .shot { position: relative; aspect-ratio: 16/11; overflow: hidden; background: var(--blush); border-bottom: 2px solid var(--ink); }
+  .mock .shot img.d { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+  .mock .shot img.m { position: absolute; right: 12px; bottom: -30px; width: 24%; border-radius: 14px; border: 2px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); }
+  .mock .txt { padding: 18px 20px 22px; }
+  .mock h3 { font-size: 26px; display: flex; justify-content: space-between; gap: 10px; }
+  .mock p { color: var(--ink-2); font-size: 14.5px; margin-top: 6px; }
+  .mock ul { margin: 12px 0 0; padding-left: 18px; font-size: 14px; display: grid; gap: 4px; }
+  @media (max-width: 1000px) { .mocks { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 640px) { .mocks { grid-template-columns: 1fr; } }
+
+  table.how { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border: 2px solid var(--ink); border-radius: var(--r); overflow: hidden; font-size: 15px; }
+  table.how th, table.how td { text-align: left; padding: 14px 18px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.how th { background: var(--ink); color: var(--cream); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+  table.how tr:last-child td { border-bottom: 0; }
+  table.how td:first-child { font-weight: 700; width: 28%; }
+  table.how .tag { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: var(--mint); white-space: nowrap; }
+  table.how .tag.css { background: var(--lilac); } table.how .tag.opt { background: var(--butter); }
+  @media (max-width: 720px) {
+    table.how, table.how tbody, table.how tr, table.how td { display: block; width: 100% !important; }
+    table.how thead { display: none; }
+    table.how tr { border-bottom: 1px solid var(--line); padding: 8px 0; }
+    table.how td { border: 0; padding: 6px 16px; }
+  }
+
+  .road { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .lane { border-radius: var(--r-lg); padding: 24px; border: 2px solid var(--ink); }
+  .lane:nth-child(1) { background: var(--blush); } .lane:nth-child(2) { background: var(--mint); } .lane:nth-child(3) { background: var(--lilac); }
+  .lane h3 { font-size: 26px; }
+  .lane .when { font-weight: 700; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); margin-top: 6px; display: block; }
+  .lane ol { margin: 16px 0 0; padding-left: 20px; display: grid; gap: 10px; font-size: 15px; }
+  .lane li::marker { font-weight: 800; }
+  @media (max-width: 900px) { .road { grid-template-columns: 1fr; } }
+
+  .callouts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .callout { border-radius: var(--r); padding: 22px; background: #fff; border: 1.5px solid var(--line); }
+  .callout h3 { font-size: 22px; margin-bottom: 10px; }
+  .callout ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14.5px; color: var(--ink-2); }
+  .rename { display: grid; gap: 6px; font-size: 14px; margin-top: 10px; }
+  .rename div { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; }
+  .rename s { color: var(--ink-2); }
+  @media (max-width: 760px) { .callouts { grid-template-columns: 1fr; } }
+  .end { text-align: center; padding: 70px 0 90px; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <a class="logo" href="#top" id="tbLogo"></a>
+    <nav aria-label="Sections"><a href="#before-after">Before / after</a><a href="#audit">Audit</a><a href="#brand">Brand</a><a href="#mockups">Mockups</a><a href="#build">How to build</a><a href="#roadmap">Roadmap</a></nav>
+    <a class="btn sm" href="home.html">Open prototype →</a>
+  </div>
+</header>
+
+<main id="top">
+  <section class="cover">
+    <div class="wrap">
+      <span class="sticker-tag" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px 8px 8px;border-radius:999px;background:#fff;border:1.5px solid var(--line);font-weight:600;font-size:14px"><b style="background:var(--mint);border-radius:999px;padding:4px 10px;font-size:12px">CONCEPT</b> Website overhaul · November 2026</span>
+      <h1>Infinity, <em>reimagined.</em></h1>
+      <p class="lede">A full redesign concept for <b>infinityphonecharms.com</b> — new brand system, homepage, shop, product pages, a custom-order builder and a proper help center. Built from the shop's real catalog and photos, so every page is clickable.</p>
+      <div class="ctas"><a class="btn" href="home.html">Open the new homepage</a><a class="btn ghost" href="#audit">What's wrong today</a></div>
+    </div>
+    <div class="bigmark" id="bigmark" aria-hidden="true"></div>
+  </section>
+
+  <section style="padding-bottom:70px">
+    <div class="wrap"><div class="stats" id="stats"></div></div>
+  </section>
+
+  <!-- BEFORE / AFTER -->
+  <section class="sec" id="before-after" style="background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+    <div class="wrap">
+      <div class="sec-hd"><div><span class="eyebrow">Before / after</span><h2>Same shop. <em>Brand new</em> first impression.</h2></div></div>
+      <div class="ba-tabs" role="tablist" id="baTabs"></div>
+      <div class="ba before-after" id="ba"></div>
+    </div>
+  </section>
+
+  <!-- AUDIT -->
+  <section class="sec" id="audit">
+    <div class="wrap">
+      <div class="sec-hd"><div><span class="eyebrow">The audit</span><h2>What's holding the <em>current site</em> back.</h2></div><p class="muted" style="max-width:40ch">Reviewed the live home, shop, product, about and contact pages on desktop and mobile, plus the full product data.</p></div>
+      <div class="audit" id="auditGrid"></div>
+    </div>
+  </section>
+
+  <!-- BRAND -->
+  <section class="sec" id="brand" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-hd"><div><span class="eyebrow">New brand system</span><h2>Keep the pink &amp; teal. <em>Lose the clutter.</em></h2></div></div>
+      <div class="brand">
+        <div class="tile">
+          <h4>Logo</h4>
+          <div class="logo-show"><span class="logo" id="bigLogo"></span></div>
+          <div class="logo-row" id="logoRow"></div>
+          <p class="logo-why">The infinity sign, rebuilt as a <b>strand of beads</b> — literally what she makes. Reads at favicon size (the old ring-text badge didn't), and works as a sticker, packaging stamp or watermark. Wordmark is just <i>infinity</i>: the shop already sells far more than phone charms.</p>
+        </div>
+        <div class="tile">
+          <h4>Palette</h4>
+          <div class="palette" id="palette"></div>
+          <div class="type-spec">
+            <h4 style="margin:10px 0 0">Type</h4>
+            <div><div class="d">Fraunces, <em>soft &amp; wonky</em></div><small>Headlines — playful serif with rounded “soft” corners, free on Google Fonts</small></div>
+            <div><div class="b">Figtree for everything you read — friendly, clear and easy on small screens.</div><small>Body &amp; UI — replaces Bitter + Shrikhand</small></div>
+          </div>
+        </div>
+      </div>
+      <div class="tile" style="margin-top:20px">
+        <div class="ui-kit">
+          <div>
+            <h4>Components</h4>
+            <div class="row"><a class="btn" href="shop.html">Shop the drop</a><a class="btn ghost" href="custom.html">Custom order</a><a class="btn pink" href="#">Sign me up</a></div>
+            <div class="row"><span class="badge">One of a kind</span><span class="badge new">New</span><span class="badge mint">❄ Holiday</span><span class="badge pink">7 options</span><span class="badge sold">Sold out</span></div>
+            <div class="row"><button class="chip" aria-pressed="true">All 102</button><button class="chip">Phone charms <span class="ct">40</span></button><button class="chip">Badge reels <span class="ct">6</span></button></div>
+            <h4 style="margin-top:26px">Photo direction</h4>
+            <div class="photo-dir" id="photoDir"></div>
+          </div>
+          <div><h4>Product card</h4><div id="kitCard"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MOCKUPS -->
+  <section class="sec" id="mockups" style="background:var(--ink);color:var(--cream)">
+    <div class="wrap">
+      <div class="sec-hd"><div><span class="eyebrow" style="color:var(--mint)">The mockups</span><h2 style="color:#fff">Five pages, <em style="color:var(--pink)">fully clickable</em>.</h2></div><p style="max-width:42ch;opacity:.8">Tip: hit <b>“Design notes”</b> (bottom-right of any page) to see numbered pins explaining each change.</p></div>
+      <div class="mocks" id="mocks"></div>
+    </div>
+  </section>
+
+  <!-- HOW TO BUILD -->
+  <section class="sec" id="build">
+    <div class="wrap">
+      <div class="sec-hd"><div><span class="eyebrow">Building it</span><h2>No re-platforming. <em>It's all Squarespace.</em></h2></div><p class="muted" style="max-width:44ch">The current site runs on Squarespace 7.1, and almost everything here maps to built-in settings and blocks. A little custom CSS covers the pill buttons and card styling.</p></div>
+      <table class="how">
+        <thead><tr><th>Change</th><th>How to do it</th><th>Type</th></tr></thead>
+        <tbody>
+          <tr><td>Colors &amp; fonts</td><td>Site Styles → Colors (cream, cocoa, bubblegum, lagoon) and Fonts (Fraunces headings, Figtree body). Drop the pink→teal gradient background.</td><td><span class="tag">Built-in</span></td></tr>
+          <tr><td>Logo &amp; header</td><td>Upload the beaded-infinity wordmark (SVG/PNG, high-res). Keep the header slim and left-aligned — the current 240px-tall centered logo pushes products below the fold.</td><td><span class="tag">Built-in</span></td></tr>
+          <tr><td>Announcement bar</td><td>Turn on the built-in announcement bar: holiday drop, shipping threshold, custom orders.</td><td><span class="tag">Built-in</span></td></tr>
+          <tr><td>Shop grid</td><td>Store page design: 4 products per row on desktop, 2 on mobile, square-ish (3:4) image crop, show second image on hover.</td><td><span class="tag">Built-in</span></td></tr>
+          <tr><td>Categories &amp; vibes</td><td>Products can sit in several categories (some already do). Clean up types (merge “Pens &amp; Keychains”, split Christmas from Halloween, categorize the 5 orphans) and add vibe categories: Holiday, Stay Spooky, Scrub Life, Sweet &amp; Pretty.</td><td><span class="tag">Built-in</span></td></tr>
+          <tr><td>Homepage rails</td><td>New homepage sections with Product / Summary blocks pointed at a category (Holiday, Under $10…), plus image + text sections for the story and custom-orders band.</td><td><span class="tag">Built-in</span></td></tr>
+          <tr><td>Newsletter</td><td>Open the footer newsletter block → Storage → connect Squarespace Email Campaigns or Mailchimp. Right now no storage is set.</td><td><span class="tag">Built-in</span></td></tr>
+          <tr><td>Custom-order page</td><td>A Form block with the same fields as the mockup (piece, colors, letters, charm, quantity, date). The live bead builder is a nice-to-have on top.</td><td><span class="tag">Built-in</span> <span class="tag opt">Optional extra</span></td></tr>
+          <tr><td>Help center</td><td>One “About &amp; Help” page with accordion blocks for shipping, returns, fit, care — replaces Customer Service + Contact Us.</td><td><span class="tag">Built-in</span></td></tr>
+          <tr><td>Pill buttons, card style, “one of a kind” tag</td><td>Most button shape settings live in Site Styles; the offset “sticker” shadow and badge styling are a short Custom CSS snippet.</td><td><span class="tag css">Custom CSS</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ROADMAP -->
+  <section class="sec" id="roadmap" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-hd"><div><span class="eyebrow">Roadmap</span><h2>Where to <em>start</em>.</h2></div></div>
+      <div class="road">
+        <div class="lane"><h3>Quick wins</h3><span class="when">One afternoon · before the holidays</span><ol>
+          <li>Connect the newsletter block's storage</li>
+          <li>Move Christmas charms to the top; feature them on the homepage</li>
+          <li>Rename the 39 unclear product names</li>
+          <li>Store grid → 4 per row desktop, 2 on mobile</li>
+          <li>Categorize the 5 orphan products; fix the category list</li>
+          <li>Add shipping/returns info + fix Contact typo</li>
+          <li>Add Instagram/TikTok links</li></ol></div>
+        <div class="lane"><h3>The overhaul</h3><span class="when">2–3 weekends</span><ol>
+          <li>New colors, fonts and beaded-infinity logo</li>
+          <li>Rebuild the homepage section by section</li>
+          <li>Shop-by-vibe collections</li>
+          <li>Custom-orders page with a request form</li>
+          <li>Merged About &amp; Help page with her photo + story</li>
+          <li>Short-description template on the top 20 products</li></ol></div>
+        <div class="lane"><h3>Keep it growing</h3><span class="when">Ongoing</span><ol>
+          <li>Re-shoot older listings on the pink backdrop</li>
+          <li>Ask every customer for a review + photo</li>
+          <li>Group/unit offers for nurses &amp; teachers</li>
+          <li>Seasonal drops: Valentine's → spring → back-to-school → spooky</li>
+          <li>“Request a remake” for sold-out pieces</li></ol></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" style="padding-top:0">
+    <div class="wrap callouts">
+      <div class="callout"><h3>✎ Things she needs to fill in</h3><ul>
+        <li>Shipping times, cost &amp; whether $25 is the right free-shipping threshold (it's a suggestion — ~2–3 items)</li>
+        <li>Returns/repair policy and holiday order cutoffs</li>
+        <li>Her name, a photo, and real social handles</li>
+        <li>Custom pricing, turnaround and group-order discounts</li>
+        <li>Real reviews (the review cards are sample layout only)</li>
+        <li>Whether a tether tab is included/sold for cases without a lanyard hole</li></ul>
+        <p class="muted" style="font-size:13.5px;margin-top:12px">These are marked with a <span class="ph-mark">dotted pink underline</span> throughout the mockups.</p></div>
+      <div class="callout"><h3>Renames, for example</h3><div class="rename" id="renames"></div>
+        <p class="muted" style="font-size:13.5px;margin-top:12px">Names that say what the thing is help shoppers, on-site search and Google. All 39 are applied in the prototype.</p></div>
+      <div class="callout" style="grid-column:1/-1"><h3>Worth knowing: character designs</h3><p class="muted" style="font-size:14.5px">Some pieces use character beads (Hello Kitty, Kuromi, Stitch, Pooh &amp; friends). Lots of small makers sell these, but marketplaces and payment processors do act on trademark complaints. Safer to keep character names out of product titles and lead marketing with her original designs — the mockups do that.</p></div>
+    </div>
+  </section>
+
+  <section class="end">
+    <div class="wrap">
+      <div data-beads="40" style="max-width:640px;margin:0 auto 30px"></div>
+      <h2>Ready to <em>click around?</em></h2>
+      <p class="lede" style="margin:14px auto 26px">Everything uses her real products, prices and stock — add things to the bag, filter the shop, build a custom charm.</p>
+      <a class="btn" href="home.html">Open the prototype</a>
+    </div>
+  </section>
+</main>
+
+<script src="assets/catalog.js"></script>
+<script src="assets/app.js"></script>
+<script>
+document.addEventListener('inf:ready', () => {
+  const { C, img, card, LOGO_MARK, esc } = INF;
+  const $ = s => document.querySelector(s);
+  const find = n => C.find(p => p.n === n);
+  $('#tbLogo').innerHTML = `${LOGO_MARK}<span class="word"><b>infinity</b></span>`;
+  $('#bigmark').innerHTML = LOGO_MARK;
+  $('#bigLogo').innerHTML = `${LOGO_MARK}<span class="word"><b>infinity</b><small>phone charms &amp; handmade goodies</small></span>`;
+  $('#logoRow').innerHTML = `<div style="background:var(--cream)">${LOGO_MARK}</div><div style="background:var(--ink);color:var(--cream)">${LOGO_MARK}</div><div style="background:var(--pink)">${LOGO_MARK}</div><div style="background:var(--teal-ink);color:#fff">${LOGO_MARK}</div>`;
+
+  // Stats from the real catalog
+  const single = C.filter(p => !p.unl && (p.v.length ? p.v.every(v => v.s <= 1) : p.stock <= 1)).length;
+  const renamed = C.filter(p => p.was).length;
+  $('#stats').innerHTML = [
+    [C.length, 'handmade products in the shop today'],
+    [Math.round(single / C.length * 100) + '%', 'are one-of-one (1 in stock) — the new site sells that as the feature'],
+    [renamed, 'product names cleaned up (“Blue Snowman” → “Blue Snowman Phone Charm”)'],
+    ['5', 'products in no category — invisible unless you scroll “All”'],
+    ['#79', 'where the first Christmas phone charm sits in the shop (of 102), a month before Christmas']
+  ].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');
+
+  // Before / after
+  const BA = [
+    ['Homepage', 'assets/current/home-desk.jpg', 'previews/home-fold.jpg', 'A huge logo, then products with no context.', 'Says what she makes and why it matters, with two clear next steps.'],
+    ['Shop', 'assets/current/shop-desk.jpg', 'previews/shop-fold.jpg', '2 products per screen. No sort, no filters beyond 10 text links.', 'Types, vibes, price, availability, sort — and 4 products per row instead of 2.'],
+    ['Product page', 'assets/current/product-desk.jpg', 'previews/product-fold.jpg', 'A dropdown, “Cute glass beaded bracelets”, and nothing else.', 'Photo swatches, scarcity, shipping answers, care, and cross-sells.'],
+    ['Mobile shop', 'assets/current/shop-mob.jpg', 'previews/shop-mobile-fold.jpg', 'One product per screen — ~100 swipes to see everything.', 'Two-up grid, filters in a drawer, sticky header with cart.']
+  ];
+  let cur = 0;
+  function ba() {
+    const [n, b, a, tb, ta] = BA[cur]; const mob = n.startsWith('Mobile');
+    $('#baTabs').innerHTML = BA.map((x, i) => `<button class="chip" role="tab" aria-pressed="${i === cur}" data-ba="${i}">${x[0]}</button>`).join('');
+    $('#ba').innerHTML = `<figure class="before"${mob ? ' style="max-width:360px;justify-self:center"' : ''}><div class="frame"><div class="chrome"><i></i><i></i><i></i></div><img src="${b}" alt="Current ${n.toLowerCase()}"></div><figcaption><span class="badge sold">Before</span>${tb}</figcaption></figure>
+      <figure class="after"${mob ? ' style="max-width:360px;justify-self:center"' : ''}><div class="frame"><div class="chrome"><i></i><i></i><i></i></div><img src="${a}" alt="Redesigned ${n.toLowerCase()}"></div><figcaption><span class="badge pink">After</span>${ta}</figcaption></figure>`;
+  }
+  document.addEventListener('click', e => { const t = e.target.closest('[data-ba]'); if (t) { cur = +t.dataset.ba; ba(); } });
+  ba();
+
+  // Audit
+  const A = [
+    ['h', 'First impression', 'No hero, no story', 'The homepage opens on a 240px badge logo, then three products with long descriptions. Nothing says what the shop is, who makes it, or why it’s special.', 'A hero with a one-line promise, two CTAs and a photo collage, then shop-by-type and the seasonal drop.'],
+    ['h', 'Finding products', '2 products per screen', 'Desktop shows two giant photos per screen; mobile shows one. With 102 products that’s ~50–100 screens. No sort, no price filter, no search.', '4/3/2-column grid, sort, vibe + price + stock filters, header search.'],
+    ['h', 'Seasonal', 'Halloween in late November', 'The shop opens on Halloween pieces. The Christmas phone charms sit at #79–88 of 102 — exactly what people want to buy right now.', 'Lead with a “Holiday Drop” on the homepage, announcement bar and shop sort.'],
+    ['h', 'Marketing', 'Newsletter isn’t connected', 'The footer sign-up block has no storage set (Squarespace’s own “needs a storage option” warning is in the page), so sign-ups likely go nowhere.', 'Connect Email Campaigns or Mailchimp; give a reason to join: first dibs on drops.'],
+    ['m', 'Finding products', 'Messy categories', '“Pens” vs “Pens & Keychains”; “Holiday Phone charms” mixes Halloween and Christmas; 5 products (incl. both Mystery Bags) are in no category.', 'Clean product types + cross-cutting vibe collections (Holiday, Stay Spooky, Scrub Life…).'],
+    ['m', 'Product info', 'Names that don’t say what it is', '39 names need work: “Blue Snowman”, “Rainbow”, “Pink Lovers” (what are they?), typos like “Braclet”, “Stripped Heart”, “I’ma”.', '“[Design] + [Product type]” naming. Applied to all 39 in the prototype.'],
+    ['m', 'Product info', 'Long, generic descriptions', '150–300 words of filler (“Introducing the enchanting…”), but no length, attachment method, shipping time or care.', 'One-line hook + details + care + shipping, in scannable accordions.'],
+    ['m', 'Trust', 'No shipping, returns or FAQ', 'Customer Service is a folder holding one Contact page. Shoppers can’t find shipping cost, timing or what happens if a charm breaks.', 'One About & Help page with a FAQ and real-person contact card.'],
+    ['m', 'Trust', 'The maker is invisible', 'No name, face or story anywhere — and no social links. For handmade, the person is the brand.', 'Meet-the-maker on the homepage and About page; socials in the footer.'],
+    ['m', 'Brand & photos', 'Background fights the photos', 'Every page sits on a pink→teal gradient, and product photos are on wood, quatrefoil fabric, stripes and a suitcase. It reads busy, and products get lost.', 'Calm cream background; re-shoot older items on the pink backdrop her newest photos already use.'],
+    ['l', 'Brand', 'Logo doesn’t scale', 'The ring of tiny repeated text is unreadable on mobile, and the file is literally named “low-resolution”.', 'Beaded-infinity mark + “infinity” wordmark as a crisp SVG.'],
+    ['l', 'Conversion', 'Sold-out = dead end', '6 sold-out items sit in the grid with no next step; custom orders are one sentence on the Contact page.', '“Request a remake” on sold-out items + a real custom-order flow.']
+  ];
+  $('#auditGrid').innerHTML = A.map(([s, a, h, p, f]) => `<div class="issue"><div class="top"><span class="area">${a}</span><span class="sev ${s}">${{ h: 'High', m: 'Medium', l: 'Low' }[s]}</span></div><h3>${h}</h3><p>${p}</p><div class="fix"><b>Fix →</b> ${f}</div></div>`).join('');
+
+  // Palette
+  const P = [['Cream', '#FFF8F3', 'Background'], ['Cocoa ink', '#2B2328', 'Text, buttons'], ['Bubblegum', '#F59CC2', 'Accent, shadows'], ['Lagoon', '#33AFAD', 'From the old logo'],
+    ['Deep lagoon', '#0E5B5D', 'Footer, labels'], ['Lilac', '#CBB8F3', 'Badges'], ['Butter', '#FFE38A', 'Highlights'], ['Hot pink', '#D93A7E', 'Emphasis']];
+  $('#palette').innerHTML = P.map(([n, h, u]) => `<div class="sw"><i style="background:${h}"></i><div><b>${n}</b>${h}<br><span class="muted">${u}</span></div></div>`).join('');
+
+  // Photo direction
+  const old = find('Mama Bear Wrist Keychain'), nu = find('Cute Pink and White Ghost Wrist Keychain');
+  $('#photoDir').innerHTML = `<figure><div class="im"><img src="${img(old.img[0])}" alt=""><span class="mk" style="background:#fff">✕</span></div><figcaption>Busy fabric competes with the beads.</figcaption></figure>
+    <figure><div class="im"><img src="${img(nu.img[0])}" alt=""><span class="mk" style="background:var(--mint)">✓</span></div><figcaption>Her newest setup: soft pink backdrop, natural light. Use it for everything.</figcaption></figure>`;
+  $('#kitCard').innerHTML = card(find('Teal Drop Dead Phone Charm'), { eager: true }).replace(/<button class="quick"[^>]*>.*?<\/button>/, '');
+
+  // Mockup cards
+  const M = [
+    ['home.html', 'Homepage', 'home', 'Hero, shop-by-type, Holiday Drop, vibes, gifts under $10, custom band, meet the maker.'],
+    ['shop.html', 'Shop', 'shop', 'All 102 real products. Filter by type, vibe, price and stock; sort; load more.'],
+    ['product.html', 'Product page', 'product', 'Photo swatches per option, scarcity, shipping answers, accordions, cross-sells.'],
+    ['custom.html', 'Custom orders', 'custom', 'Live bead builder (charm, keychain, reel, bracelet), request form, group orders.'],
+    ['about.html', 'About & Help', 'about', 'Maker story, values, FAQ (shipping, returns, fit, care) and contact — one page instead of three.'],
+    ['shop.html?vibe=scrubs', 'Collection example', 'scrubs', '“Scrub Life” — every nurse, dental & teacher piece in one place, across product types.']];
+  $('#mocks').innerHTML = M.map(([h, n, k, d]) => `<a class="mock" href="${h}"><div class="shot"><img class="d" src="previews/${k}-fold.jpg" alt="" loading="lazy"><img class="m" src="previews/${k}-mobile-fold.jpg" alt="" loading="lazy" onerror="this.remove()"></div><div class="txt"><h3>${n} <span aria-hidden="true">→</span></h3><p>${d}</p></div></a>`).join('');
+
+  // Renames
+  const R = C.filter(p => p.was).filter(p => ['Blue Snowman', 'Pink Lovers', 'You Make It Beat Faster Braclet', "Valentine's Day Stripped Heart", "Keep Calm I'ma Nurse Wrist Keychains", 'Rainbow'].includes(p.was));
+  $('#renames').innerHTML = R.map(p => `<div><s>${esc(p.was)}</s><span>→</span><b>${esc(p.n)}</b></div>`).join('');
+});
+</script>
+</body>
+</html>

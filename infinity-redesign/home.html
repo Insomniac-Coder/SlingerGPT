@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Infinity — Handmade Phone Charms (Home concept)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,400..900,0..100,0..1;1,9..144,400..900,0..100,0..1&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  /* ---------- Hero ---------- */
+  .hero { padding: clamp(36px, 6vw, 80px) 0 clamp(48px, 7vw, 96px); overflow: hidden; }
+  .hero .wrap { display: grid; grid-template-columns: 1.05fr 1fr; gap: clamp(28px, 5vw, 72px); align-items: center; }
+  .hero h1 { margin: 18px 0 22px; }
+  .hero h1 .loop { white-space: nowrap; }
+  .hero .ctas { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 30px; }
+  .trust { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 34px; font-size: 14px; font-weight: 600; color: var(--ink-2); }
+  .trust span { display: inline-flex; gap: 8px; align-items: center; }
+  .trust i { width: 10px; height: 10px; border-radius: 50%; background: var(--pink); border: 1.5px solid var(--ink); }
+  .trust span:nth-child(2) i { background: var(--teal); } .trust span:nth-child(3) i { background: var(--butter); }
+  .sticker-tag { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px 8px 8px; border-radius: 999px; background: #fff; border: 1.5px solid var(--line); font-weight: 600; font-size: 14px; }
+  .sticker-tag b { background: var(--mint); border-radius: 999px; padding: 4px 10px; font-size: 12px; letter-spacing: .04em; }
+
+  .collage { position: relative; aspect-ratio: 1 / 1.02; max-width: 600px; justify-self: end; width: 100%; }
+  .collage figure { position: absolute; margin: 0; overflow: hidden; border: 2px solid var(--ink); background: var(--blush); box-shadow: 6px 6px 0 var(--ink); }
+  .collage img { width: 100%; height: 100%; object-fit: cover; }
+  .collage .a { left: 16%; top: 0; width: 56%; height: 74%; border-radius: 999px 999px 26px 26px; z-index: 2; }
+  .collage .b { left: 0; bottom: 4%; width: 36%; height: 42%; border-radius: 26px; transform: rotate(-6deg); z-index: 3; box-shadow: 5px 5px 0 var(--pink); }
+  .collage .c { right: 0; top: 26%; width: 34%; height: 44%; border-radius: 26px; transform: rotate(5deg); z-index: 1; box-shadow: 5px 5px 0 var(--teal); }
+  .collage .d { right: 10%; bottom: 0; width: 30%; height: 30%; border-radius: 50%; z-index: 4; box-shadow: 5px 5px 0 var(--lilac); }
+  .collage .loop-big { position: absolute; left: -6%; top: 2%; width: 34%; z-index: 5; color: var(--ink); transform: rotate(-14deg); }
+  .collage .loop-big .mark { width: 100%; height: auto; }
+  .spin { position: absolute; right: 2%; top: -2%; width: 120px; height: 120px; z-index: 6; }
+  .spin svg { width: 100%; height: 100%; animation: spin 22s linear infinite; }
+  .spin b { position: absolute; inset: 0; display: grid; place-items: center; font: italic 800 26px/1 var(--f-display); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spin svg { animation: none; } }
+  @media (max-width: 860px) {
+    .hero .wrap { grid-template-columns: 1fr; }
+    .collage { justify-self: center; max-width: 440px; margin-top: 8px; }
+    .spin { width: 92px; height: 92px; }
+    .spin b { font-size: 20px; }
+  }
+
+  /* ---------- Category tiles ---------- */
+  .cats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 18px; }
+  .cat { text-decoration: none; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; }
+  .cat .disc { position: relative; width: 100%; aspect-ratio: 1; border-radius: 50%; overflow: hidden; border: 2px solid var(--ink); background: var(--blush); transition: transform .2s, box-shadow .2s; }
+  .cat .disc img { width: 100%; height: 100%; object-fit: cover; }
+  .cat:hover .disc { transform: translateY(-4px) rotate(-2deg); box-shadow: 0 6px 0 var(--ink); }
+  .cat b { font-size: 16px; line-height: 1.2; }
+  .cat small { color: var(--ink-2); font-size: 13px; margin-top: -8px; }
+  @media (max-width: 960px) { .cats { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 22px 14px; } }
+
+  /* ---------- Holiday drop ---------- */
+  .holiday { background: var(--teal-ink); color: #EAF6F5; border-radius: var(--r-lg); margin: 0 auto; padding: clamp(36px, 5vw, 64px) clamp(20px, 4vw, 56px); position: relative; overflow: hidden; }
+  .holiday::before { content: ""; position: absolute; inset: 0; opacity: .14; background-image: radial-gradient(#fff 1.4px, transparent 1.6px), radial-gradient(#fff 1px, transparent 1.2px); background-size: 46px 46px, 28px 28px; background-position: 0 0, 14px 20px; pointer-events: none; }
+  .holiday > * { position: relative; }
+  .holiday h2 { color: #fff; } .holiday h2 em { color: var(--pink); }
+  .holiday .eyebrow { color: var(--mint); }
+  .holiday .card .meta .kind { color: var(--mint); }
+  .holiday .card .ph { background: rgba(255,255,255,.08); }
+  .holiday .link-arrow { border-color: #fff; color: #fff; }
+  .holiday .count { display: inline-flex; gap: 10px; margin-top: 14px; font-size: 15px; opacity: .9; }
+
+  /* ---------- Vibes ---------- */
+  .vibes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+  .vibe { position: relative; display: flex; flex-direction: column; text-decoration: none; border-radius: var(--r); border: 2px solid var(--ink); background: #fff; overflow: hidden; transition: transform .2s, box-shadow .2s; }
+  .vibe:hover { transform: translate(-3px, -3px); box-shadow: 6px 6px 0 var(--ink); }
+  .vibe .mos { display: grid; grid-template-columns: 1.3fr 1fr; grid-template-rows: 1fr 1fr; gap: 3px; aspect-ratio: 1.1; background: var(--ink); }
+  .vibe .mos img { width: 100%; height: 100%; object-fit: cover; }
+  .vibe .mos img:first-child { grid-row: span 2; }
+  .vibe .txt { padding: 16px 18px 18px; flex: 1; }
+  .vibe h3 { font-size: 24px; display: flex; gap: 8px; align-items: center; }
+  .vibe p { color: var(--ink-2); font-size: 14.5px; margin-top: 6px; line-height: 1.45; }
+  .vibe:nth-child(1) .txt { background: var(--lilac); } .vibe:nth-child(2) .txt { background: var(--mint); }
+  .vibe:nth-child(3) .txt { background: var(--blush-2); } .vibe:nth-child(4) .txt { background: var(--butter); }
+  @media (max-width: 960px) { .vibes { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+  @media (max-width: 520px) { .vibes { grid-template-columns: 1fr; } .vibe { flex-direction: row; } .vibe .mos { width: 44%; aspect-ratio: auto; } .vibe .txt { flex: 1; } }
+
+  /* ---------- Promise ---------- */
+  .promise { display: grid; grid-template-columns: 1fr 1.2fr; gap: clamp(28px, 5vw, 72px); align-items: center; }
+  .promise .ph-big { position: relative; border-radius: var(--r-lg); overflow: hidden; aspect-ratio: 4/5; border: 2px solid var(--ink); }
+  .promise .ph-big img { width: 100%; height: 100%; object-fit: cover; }
+  .promise .ph-big .lbl { position: absolute; left: 16px; bottom: 16px; right: 16px; background: var(--cream); border: 2px solid var(--ink); border-radius: 16px; padding: 12px 14px; font-size: 14px; }
+  .points { display: grid; gap: 22px; margin-top: 30px; }
+  .point { display: grid; grid-template-columns: 54px 1fr; gap: 16px; align-items: start; }
+  .point .ic { width: 54px; height: 54px; border-radius: 50%; border: 2px solid var(--ink); display: grid; place-items: center; font-size: 24px; }
+  .point:nth-child(1) .ic { background: var(--pink); } .point:nth-child(2) .ic { background: var(--teal); } .point:nth-child(3) .ic { background: var(--butter); }
+  .point b { display: block; font-size: 18px; margin-bottom: 3px; }
+  .point p { color: var(--ink-2); }
+  @media (max-width: 860px) { .promise { grid-template-columns: 1fr; } .promise .ph-big { max-width: 440px; } }
+
+  /* ---------- Gifts ---------- */
+  .gifts { display: grid; grid-template-columns: 1fr 2.2fr; gap: 24px; align-items: stretch; }
+  .mystery { position: relative; border-radius: var(--r-lg); background: var(--ink); color: var(--cream); padding: 30px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; min-height: 420px; }
+  .mystery h3 { font-size: clamp(30px, 3vw, 40px); color: #fff; }
+  .mystery h3 em { color: var(--butter); }
+  .mystery p { opacity: .85; margin-top: 12px; }
+  .mystery .bags { display: flex; gap: 12px; margin: 22px 0; }
+  .mystery .bags a { flex: 1; text-decoration: none; background: rgba(255,255,255,.08); border: 1.5px solid rgba(255,255,255,.25); border-radius: 16px; padding: 14px; }
+  .mystery .bags a:hover { background: rgba(255,255,255,.16); }
+  .mystery .bags b { display: block; font-size: 22px; font-family: var(--f-display); }
+  .mystery .bags small { opacity: .8; font-size: 13px; line-height: 1.35; display: block; margin-top: 4px; }
+  .mystery .q { position: absolute; right: -10px; top: -30px; font: italic 900 220px/1 var(--f-display); color: var(--pink); opacity: .22; }
+  .gifts .grid { grid-template-columns: repeat(4, minmax(0,1fr)); }
+  @media (max-width: 1100px) { .gifts { grid-template-columns: 1fr; } .mystery { min-height: 0; } }
+  @media (max-width: 720px) { .gifts .grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+
+  /* ---------- Custom band ---------- */
+  .custom-band { background: var(--pink); border-top: 2px solid var(--ink); border-bottom: 2px solid var(--ink); }
+  .custom-band .wrap { display: grid; grid-template-columns: 1fr 1.25fr; gap: 40px; align-items: center; padding-top: clamp(48px, 6vw, 80px); padding-bottom: clamp(48px, 6vw, 80px); }
+  .custom-band h2 em { color: var(--ink); text-decoration: underline wavy var(--cream) 3px; text-underline-offset: 8px; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .step { background: var(--cream); border: 2px solid var(--ink); border-radius: var(--r); padding: 20px; box-shadow: 4px 4px 0 var(--ink); }
+  .step .n { font: italic 800 40px/1 var(--f-display); color: var(--pink-deep); }
+  .step b { display: block; margin: 10px 0 6px; font-size: 17px; }
+  .step p { font-size: 14px; color: var(--ink-2); line-height: 1.45; }
+  @media (max-width: 960px) { .custom-band .wrap { grid-template-columns: 1fr; } }
+  @media (max-width: 620px) { .steps { grid-template-columns: 1fr; } }
+
+  /* ---------- Maker ---------- */
+  .maker { display: grid; grid-template-columns: .9fr 1.1fr; gap: clamp(28px, 5vw, 72px); align-items: center; }
+  .maker-photo { position: relative; aspect-ratio: 1; border-radius: 50%; border: 2px dashed var(--ink-2); background: repeating-linear-gradient(-45deg, var(--blush), var(--blush) 14px, #fff 14px, #fff 28px); display: grid; place-items: center; text-align: center; padding: 18%; color: var(--ink-2); font-size: 15px; max-width: 460px; }
+  .maker-photo b { display: block; font: italic 700 26px/1.1 var(--f-display); color: var(--ink); margin-bottom: 8px; }
+  .maker blockquote { margin: 0; font: italic 500 clamp(22px, 2.3vw, 30px)/1.3 var(--f-display); font-variation-settings: "SOFT" 100; }
+  .maker .sig { margin-top: 18px; font-weight: 700; }
+  @media (max-width: 860px) { .maker { grid-template-columns: 1fr; } .maker-photo { max-width: 300px; } }
+
+  /* ---------- Reviews ---------- */
+  .reviews { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .review { background: #fff; border-radius: var(--r); padding: 24px; border: 1.5px solid var(--line); display: flex; flex-direction: column; gap: 14px; }
+  .review .stars { color: var(--pink-deep); letter-spacing: 3px; font-size: 18px; }
+  .review p { font-size: 16.5px; }
+  .review .who { display: flex; align-items: center; gap: 10px; margin-top: auto; font-size: 14px; color: var(--ink-2); }
+  .review .who img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
+  .sample-note { display: inline-block; font-size: 12px; font-weight: 700; padding: 4px 10px; border: 1.5px dashed var(--pink-deep); color: var(--pink-deep); border-radius: 999px; }
+  @media (max-width: 860px) { .reviews { grid-template-columns: 1fr; } }
+
+  /* ---------- Social strip ---------- */
+  .ugc { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .ugc a { position: relative; aspect-ratio: 1; border-radius: 16px; overflow: hidden; }
+  .ugc img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
+  .ugc a:hover img { transform: scale(1.06); }
+  @media (max-width: 720px) { .ugc { grid-template-columns: repeat(3, 1fr); } }
+</style>
+</head>
+<body data-page="home">
+<div id="site-top"></div>
+
+<main>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap">
+      <div data-note="New hero: says what she makes, why it's special (handmade, one-of-one) and gives two clear next steps. The old homepage opened on a 240px logo and three products with long descriptions.">
+        <span class="sticker-tag"><b>NEW</b> The Holiday Drop is here ❄</span>
+        <h1>Little charms, <em class="loop">infinite</em> personality.</h1>
+        <p class="lede">Beaded phone charms, wrist keychains, badge reels &amp; bracelets — strung by hand, one at a time. Most pieces are one-of-one, so when it's gone, it's gone.</p>
+        <div class="ctas">
+          <a class="btn" href="shop.html?vibe=holiday">Shop the Holiday Drop</a>
+          <a class="btn ghost" href="custom.html">Design a custom piece</a>
+        </div>
+        <div class="trust"><span><i></i>100+ handmade designs</span><span><i></i>Gifts from $3</span><span><i></i>Real human support</span></div>
+      </div>
+      <div class="collage" id="collage" aria-hidden="true"></div>
+    </div>
+  </section>
+
+  <div class="wrap"><div data-beads="52"></div></div>
+
+  <!-- CATEGORIES -->
+  <section class="sec" style="padding-bottom:40px">
+    <div class="wrap">
+      <div class="sec-hd" data-note="Shop by product type, with price-from labels. Replaces the old category text links (which overlapped: Pens vs Pens & Keychains, and 5 products had no category at all).">
+        <div><span class="eyebrow">Shop by thing</span><h2>What are we <em>charming</em> today?</h2></div>
+        <a class="link-arrow" href="shop.html">Shop all 102 →</a>
+      </div>
+      <div class="cats" id="cats"></div>
+    </div>
+  </section>
+
+  <!-- HOLIDAY -->
+  <section class="sec" style="padding-top:40px">
+    <div class="wrap">
+      <div class="holiday" data-note="Seasonal merchandising: it's late November, but the current shop still opens on Halloween — the Christmas phone charms are buried at #79–88 of 102. Lead with what people are shopping for right now.">
+        <div class="sec-hd">
+          <div><span class="eyebrow">Limited · one-of-one</span><h2>The Holiday <em>Drop</em> ❄</h2>
+            <p class="count">Snowmen, reindeer, sweater-weather &amp; tree charms — perfect stocking stuffers.</p></div>
+          <a class="link-arrow" href="shop.html?vibe=holiday">See the whole drop →</a>
+        </div>
+        <div class="rail" id="holidayRail"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VIBES -->
+  <section class="sec" style="padding-top:20px">
+    <div class="wrap">
+      <div class="sec-hd" data-note="Collections built around who's buying: spooky-cute fans, nurses & teachers (badge reels!), sweet/pretty, and awareness pieces. These cut across product types, which the old categories couldn't do.">
+        <div><span class="eyebrow">Shop by vibe</span><h2>Pick your <em>vibe</em>.</h2></div>
+      </div>
+      <div class="vibes" id="vibes"></div>
+    </div>
+  </section>
+
+  <!-- PROMISE -->
+  <section class="sec" style="background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+    <div class="wrap promise">
+      <div class="ph-big" id="promisePh"></div>
+      <div data-note="Turns 'only 1 in stock' (true for ~90% of products) into the selling point: every piece is one-of-a-kind.">
+        <span class="eyebrow">Why Infinity</span>
+        <h2 style="margin-top:12px">Every bead, <em>picked by hand</em>.</h2>
+        <div class="points">
+          <div class="point"><span class="ic">✶</span><div><b>One of a kind, for real</b><p>Almost everything in the shop is a single piece. You won't see your charm on anyone else's phone.</p></div></div>
+          <div class="point"><span class="ic">∞</span><div><b>Made to be used every day</b><p>Sturdy cords, solid clasps and a phone-safe loop — cute enough to show off, tough enough for your keys.</p></div></div>
+          <div class="point"><span class="ic">♡</span><div><b>Made by a real person</b><p>Questions, custom colors, a name on a badge reel? You're emailing the person who'll make it.</p></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GIFTS -->
+  <section class="sec">
+    <div class="wrap">
+      <div class="sec-hd" data-note="Gift-led merchandising for the season: price-capped picks + mystery bags (currently uncategorised and nearly invisible in the shop).">
+        <div><span class="eyebrow">Stocking stuffers</span><h2>Gifts <em>under $10</em>.</h2></div>
+        <a class="link-arrow" href="shop.html?price=under10">Shop all gifts under $10 →</a>
+      </div>
+      <div class="gifts">
+        <div class="mystery">
+          <span class="q" aria-hidden="true">?</span>
+          <div><span class="eyebrow" style="color:var(--butter)">Feeling lucky?</span>
+          <h3 style="margin-top:10px">Mystery <em>bags</em></h3>
+          <p>A surprise piece picked by hand from the shop — the most fun way to gift (or treat yourself).</p></div>
+          <div class="bags" id="bags"></div>
+          <a class="btn cream" href="shop.html?type=Mystery%20Bags">Grab a bag</a>
+        </div>
+        <div class="grid" id="giftGrid"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CUSTOM -->
+  <section class="custom-band">
+    <div class="wrap">
+      <div data-note="Custom orders were only mentioned in one sentence on the Contact page. Give them a real path — they're higher value and great for nurses' units, teacher gifts and bridesmaids.">
+        <span class="eyebrow" style="color:var(--ink)">Custom orders</span>
+        <h2 style="margin:12px 0 16px">Dream it. <em>I'll bead it.</em></h2>
+        <p class="lede" style="color:var(--ink)">Names, initials, team colors, your unit's badge reels, matching sets for the whole friend group — tell me what you're picturing.</p>
+        <a class="btn cream" style="margin-top:26px" href="custom.html">Start a custom order</a>
+      </div>
+      <div class="steps">
+        <div class="step"><span class="n">1</span><b>Tell me your idea</b><p>Pick the piece, colors and any letters — or just describe the vibe.</p></div>
+        <div class="step"><span class="n">2</span><b>Get a quick preview</b><p>I'll reply with a bead plan and price, usually within 1–2 days.</p></div>
+        <div class="step"><span class="n">3</span><b>Made just for you</b><p>Hand-strung and shipped — gift-wrapped if you like.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAKER -->
+  <section class="sec">
+    <div class="wrap maker">
+      <div class="maker-photo"><div><b>Your photo here</b>A friendly photo at the bead table — the #1 reason people buy handmade is the person behind it.</div></div>
+      <div data-note="The current About page never introduces the maker. A face + first-person story builds trust and makes the prices feel like the bargain they are.">
+        <span class="eyebrow">Meet the maker</span>
+        <blockquote style="margin-top:16px">“I started making charms because I wanted my everyday stuff to feel a little more <em>me</em>. Now I get to do that for you — one bead at a time.”</blockquote>
+        <p class="sig">— <span class="ph-mark" title="Placeholder — her name">[Her name]</span>, founder &amp; bead-stringer-in-chief</p>
+        <a class="link-arrow" style="margin-top:22px" href="about.html">Read the story →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- REVIEWS -->
+  <section class="sec" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-hd" data-note="Social proof. Squarespace doesn't show reviews by default — collect them by email after orders and paste the best ones here (or use a reviews extension).">
+        <div><span class="eyebrow">Kind words</span><h2>Charmed <em>customers</em>.</h2></div>
+        <span class="sample-note">Sample layout — swap in real reviews</span>
+      </div>
+      <div class="reviews" id="reviews"></div>
+    </div>
+  </section>
+
+  <!-- UGC -->
+  <section class="sec" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-hd">
+        <div><span class="eyebrow">Follow the bead table</span><h2><span class="ph-mark" title="Placeholder — her real handle">@infinityphonecharms</span></h2></div>
+        <a class="link-arrow" href="#">Follow on Instagram →</a>
+      </div>
+      <div class="ugc" id="ugc"></div>
+    </div>
+  </section>
+</main>
+
+<div id="site-bottom"></div>
+
+<script src="assets/catalog.js"></script>
+<script src="assets/app.js"></script>
+<script>
+document.addEventListener('inf:ready', () => {
+  const { C, card, img, money, LOGO_MARK, esc } = INF;
+  const find = n => C.find(p => p.n === n);
+  const $ = s => document.querySelector(s);
+
+  // Hero collage — her newest photos (clean pink backdrop) look cohesive together
+  const h = ['Cute Pink and White Ghost Wrist Keychain', 'Lip Balm Keychain', 'Purple Drop Dead Phone Charm', '“Being Tired” Personality Wrist Keychain'].map(find);
+  $('#collage').innerHTML = `
+    <figure class="a"><img src="${img(h[0].img[0])}" alt="" fetchpriority="high"></figure>
+    <figure class="b"><img src="${img(h[1].img[0])}" alt=""></figure>
+    <figure class="c"><img src="${img(h[2].img[0])}" alt=""></figure>
+    <figure class="d"><img src="${img(h[3].img[0])}" alt=""></figure>
+    <div class="loop-big">${LOGO_MARK}</div>
+    <div class="spin"><svg viewBox="0 0 120 120"><defs><path id="circ" d="M60,60 m-46,0 a46,46 0 1,1 92,0 a46,46 0 1,1 -92,0"/></defs>
+      <circle cx="60" cy="60" r="58" fill="var(--butter)" stroke="var(--ink)" stroke-width="2"/>
+      <text style="font:800 11.5px var(--f-body);letter-spacing:2.6px;fill:var(--ink)"><textPath href="#circ">HANDMADE • ONE OF A KIND • HANDMADE • ONE OF A KIND •</textPath></text></svg><b>∞</b></div>`;
+
+  // Categories
+  const cats = [
+    ['Phone Charms', 'Purple Drop Dead Phone Charm'], ['Wrist Keychains', 'Cute Pink and White Ghost Wrist Keychain'],
+    ['Badge Reels', 'Bear Holding a Cupcake Badge Reel'], ['Bracelets', 'Fairy Bracelet'],
+    ['Bundles', 'Brown Daisy Pen & Keychain Bundle'], ['Lip Balm Keychains', 'Halloween Lip Balm Keychain']];
+  $('#cats').innerHTML = cats.map(([t, n]) => {
+    const ps = C.filter(p => p.type === t || (t === 'Bundles' && p.type === 'Pens')); const min = Math.min(...ps.map(p => p.p));
+    const label = t === 'Bundles' ? 'Pens & bundles' : t;
+    const q = t === 'Bundles' ? 'shop.html?type=Bundles' : `shop.html?type=${encodeURIComponent(t)}`;
+    return `<a class="cat" href="${q}"><span class="disc"><img src="${img(find(n).img[0])}" alt=""></span><b>${label}</b><small>${ps.length} styles · from ${money(min)}</small></a>`;
+  }).join('');
+
+  // Holiday rail — available first
+  const hol = C.filter(p => p.vibes.includes('holiday')).sort((a, b) => a.sold - b.sold);
+  $('#holidayRail').innerHTML = hol.map(p => card(p)).join('');
+
+  // Vibes
+  const vibes = [
+    ['spooky', 'Stay Spooky', '☠', 'Skulls, ghosts & cow-ghosts — spooky season never ends.', ['Peach Skull Heart Phone Charm', 'Cute Ghost Eating Candy Wrist Keychain', 'Black & Pink Stay Spooky Phone Charm']],
+    ['scrubs', 'Scrub Life', '✚', 'Badge reels & charms for nurses, teachers and dental squads.', ['White Nurse Phone Charm', 'Emergency Coffee Badge Reel', 'Peach Teach Badge Reel']],
+    ['sweet', 'Sweet & Pretty', '♡', 'Bows, pearls, hearts and every shade of pink.', ['Pretty in Bows Phone Charm', 'Fairy Bracelet', 'Pink Lovers Phone Charm']],
+    ['cause', 'Wear It for a Cause', '🎗', 'Pride and awareness pieces that start a conversation.', ['Dark Pink Ribbon Awareness Phone Charm', 'LGBTQ+ Pride Stretchy Bracelet', 'Pink Ribbon Stretchy Bracelet']]];
+  $('#vibes').innerHTML = vibes.map(([k, n, e, d, ims]) => {
+    const ct = C.filter(p => p.vibes.includes(k)).length;
+    return `<a class="vibe" href="shop.html?vibe=${k}"><div class="mos">${ims.map(x => `<img src="${img(find(x).img[0])}" alt="" loading="lazy">`).join('')}</div>
+      <div class="txt"><h3>${n} <span aria-hidden="true">${e}</span></h3><p>${d}</p><p style="margin-top:10px;font-weight:700;color:var(--ink)">${ct} pieces →</p></div></a>`;
+  }).join('');
+
+  // Promise photo
+  const pr = find('Stay Spooky Ghost Wrist Keychain');
+  $('#promisePh').innerHTML = `<img src="${img(pr.img[0])}" alt="" loading="lazy"><div class="lbl"><b>Shot on the new backdrop.</b> Her newest photos (soft pink, natural light) are exactly the look — re-shoot older pieces the same way.</div>`;
+
+  // Gifts under $10
+  const gifts = ['Lip Balm Keychain', 'Emergency Coffee Badge Reel', 'Fairy Bracelet', 'Cute Ghost Eating Candy Wrist Keychain',
+    'Beaded Pens', 'Cute Spring Frog Badge Reel', 'Hedgehog Wrist Keychain', 'Natural Crystal Bracelets'].map(find);
+  $('#giftGrid').innerHTML = gifts.map(p => card(p)).join('');
+  const bags = C.filter(p => p.type === 'Mystery Bags').sort((a, b) => a.p - b.p);
+  const bagTxt = { 'Small Mystery Bag': 'A bracelet or a pen', 'Medium Mystery Bag': 'A phone charm or a wrist keychain' };
+  $('#bags').innerHTML = bags.map(p => `<a href="product.html?id=${p.id}"><b>${money(p.p)}</b>${esc(p.n.replace(' Mystery Bag', ''))}<small>${bagTxt[p.n] || ''}</small></a>`).join('');
+
+  // Reviews (sample layout)
+  const rv = [
+    [`“The cutest thing on my phone. I get asked where it's from at least once a week.”`, 'Phone charm buyer', 'Teal Drop Dead Phone Charm'],
+    ['“Ordered badge reels for our whole unit — everyone picked their own colors. Total morale boost.”', 'Custom order', 'White, Pink, and Black Scrub Life Badge Reel'],
+    ['“Bought a mystery bag for my niece and ended up getting one for me too.”', 'Mystery bag', 'Hedgehog Holding a Pumpkin Wrist Keychain']];
+  $('#reviews').innerHTML = rv.map(([q, w, n]) => `<div class="review"><span class="stars">★★★★★</span><p>${q}</p><div class="who"><img src="${img(find(n).img[0])}" alt=""><span><b style="color:var(--ink)">Customer name</b><br>${w}</span></div></div>`).join('');
+
+  // UGC strip
+  const ug = ['Cute Pink and White Ghost Wrist Keychain', 'Halloween Lip Balm Keychain', 'Hedgehog Wrist Keychain', 'Orange Ghost Cow Phone Charm', 'Pink Skulls Wrist Keychain', 'Blue Stay Spooky Phone Charm'].map(find);
+  $('#ugc').innerHTML = ug.map(p => `<a href="product.html?id=${p.id}"><img src="${img(p.img[p.img.length > 1 ? 1 : 0])}" alt="" loading="lazy"></a>`).join('');
+});
+</script>
+</body>
+</html>
